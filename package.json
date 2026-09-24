@@ -6,7 +6,8 @@
     "dev": "concurrently -p none \"serwist build --watch\" \"next dev\"",
     "build": "next build && serwist build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
