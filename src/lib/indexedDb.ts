@@ -12,7 +12,7 @@ export interface PendingUpload {
   photoBlob: Blob;
   brand: TagRef;
   isPosm: boolean;
-  category: TagRef;
+  category: TagRef | null;
   posmType: TagRef | null;
   shopType: TagRef;
   shopName: string;

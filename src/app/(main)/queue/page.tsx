@@ -35,7 +35,9 @@ function QueueItem({ item }: { item: PendingUpload }) {
           {item.brand.name} · {item.shopType.name}
         </p>
         <p className="text-xs text-gray-500 dark:text-gray-400">
-          {item.isPosm ? item.posmType?.name ?? "POSM" : "No POSM"} · {item.category.name}
+          {item.isPosm ? "POSM" : "Category Shelf Display"}
+          {(item.isPosm ? item.posmType?.name : item.category?.name) &&
+            ` · ${item.isPosm ? item.posmType?.name : item.category?.name}`}
         </p>
         <p className={`text-xs font-semibold ${statusColor[item.status]}`}>
           {statusLabel[item.status]}

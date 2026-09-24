@@ -122,8 +122,8 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
               <th className="px-3 py-2">Captured</th>
               <th className="px-3 py-2">Rep</th>
               <th className="px-3 py-2">Brand</th>
-              <th className="px-3 py-2">POSM</th>
-              <th className="px-3 py-2">Category</th>
+              <th className="px-3 py-2">Kind</th>
+              <th className="px-3 py-2">Type</th>
               <th className="px-3 py-2">Shop type</th>
               <th className="px-3 py-2">Shop name</th>
               <th className="px-3 py-2">Status</th>
@@ -136,8 +136,8 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
                 <td className="px-3 py-2 whitespace-nowrap">{r.capturedAt.toLocaleString()}</td>
                 <td className="px-3 py-2">{r.rep.name}</td>
                 <td className="px-3 py-2">{r.brand.name}</td>
-                <td className="px-3 py-2">{r.isPosm ? r.posmType?.name ?? "Yes" : "No"}</td>
-                <td className="px-3 py-2">{r.category.name}</td>
+                <td className="px-3 py-2">{r.isPosm ? "POSM" : "Category Shelf Display"}</td>
+                <td className="px-3 py-2">{r.isPosm ? (r.posmType?.name ?? "—") : (r.category?.name ?? "—")}</td>
                 <td className="px-3 py-2">{r.shopType.name}</td>
                 <td className="px-3 py-2">{r.shopName}</td>
                 <td className="px-3 py-2">
