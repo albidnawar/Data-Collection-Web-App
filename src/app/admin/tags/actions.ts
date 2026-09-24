@@ -5,10 +5,13 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isTagType, type TagType } from "@/lib/tagTypes";
 import { getDriveClient } from "@/lib/driveClient";
+import { countPhotosUsingTag, mergeAndDeleteTag } from "@/lib/tagMerge";
+import { runFilenameSyncBatch } from "@/lib/filenameSync";
 
-async function requireAdmin() {
+async function requireAdminId(): Promise<string> {
   const session = await auth();
   if (!session?.user?.isAdmin) throw new Error("Forbidden");
+  return session.user.id;
 }
 
 async function updateTag(type: TagType, id: string, data: { active?: boolean; name?: string }) {
@@ -24,15 +27,46 @@ async function updateTag(type: TagType, id: string, data: { active?: boolean; na
   }
 }
 
+async function createTag(type: TagType, name: string, createdById: string) {
+  const create = { name, createdById };
+  switch (type) {
+    case "brand":
+      return prisma.brand.create({ data: create });
+    case "category":
+      return prisma.category.create({ data: create });
+    case "posmType":
+      return prisma.posmType.create({ data: create });
+    case "shopType":
+      return prisma.shopType.create({ data: create });
+  }
+}
+
+export async function addTagAction(type: string, _prevState: string | undefined, formData: FormData) {
+  const adminId = await requireAdminId();
+  if (!isTagType(type)) return "Invalid tag type";
+
+  const name = formData.get("name");
+  if (typeof name !== "string" || name.trim().length === 0) return "Name is required";
+
+  try {
+    await createTag(type, name.trim(), adminId);
+  } catch {
+    return "That name already exists";
+  }
+
+  revalidatePath("/admin/tags");
+  return undefined;
+}
+
 export async function toggleTagActiveAction(type: string, id: string, active: boolean) {
-  await requireAdmin();
+  await requireAdminId();
   if (!isTagType(type)) throw new Error("Invalid tag type");
   await updateTag(type, id, { active });
   revalidatePath("/admin/tags");
 }
 
 export async function renameTagAction(type: string, id: string, formData: FormData) {
-  await requireAdmin();
+  await requireAdminId();
   if (!isTagType(type)) throw new Error("Invalid tag type");
 
   const newName = formData.get("name");
@@ -54,4 +88,29 @@ export async function renameTagAction(type: string, id: string, formData: FormDa
   }
 
   revalidatePath("/admin/tags");
+}
+
+export async function countPhotosForTagAction(type: string, id: string): Promise<number> {
+  await requireAdminId();
+  if (!isTagType(type)) throw new Error("Invalid tag type");
+  return countPhotosUsingTag(type, id);
+}
+
+export async function deleteTagAction(type: string, id: string, mergeIntoId: string | null) {
+  await requireAdminId();
+  if (!isTagType(type)) throw new Error("Invalid tag type");
+
+  await mergeAndDeleteTag(type, id, mergeIntoId);
+
+  revalidatePath("/admin/tags");
+  revalidatePath("/admin/photos");
+  revalidatePath("/admin");
+}
+
+export async function rerunFilenameSyncAction() {
+  await requireAdminId();
+  const result = await runFilenameSyncBatch();
+  revalidatePath("/admin/tags");
+  revalidatePath("/admin/photos");
+  return result;
 }

@@ -49,3 +49,45 @@ export async function toggleRepAdminAction(repId: string, isAdmin: boolean) {
   await prisma.rep.update({ where: { id: repId }, data: { isAdmin } });
   revalidatePath("/admin/reps");
 }
+
+export async function editRepAction(repId: string, _prevState: string | undefined, formData: FormData) {
+  await requireAdmin();
+
+  const name = formData.get("name");
+  const username = formData.get("username");
+  if (typeof name !== "string" || typeof username !== "string") return "Name and username are required.";
+  if (name.trim().length === 0 || username.trim().length === 0) return "Name and username are required.";
+
+  const existing = await prisma.rep.findUnique({ where: { username: username.trim() } });
+  if (existing && existing.id !== repId) return "That username is already taken.";
+
+  await prisma.rep.update({ where: { id: repId }, data: { name: name.trim(), username: username.trim() } });
+  revalidatePath("/admin/reps");
+  return undefined;
+}
+
+export async function changeRepPasswordAction(repId: string, _prevState: string | undefined, formData: FormData) {
+  await requireAdmin();
+
+  const password = formData.get("password");
+  if (typeof password !== "string" || password.length < 6) return "Password must be at least 6 characters.";
+
+  const passwordHash = await bcrypt.hash(password, 10);
+  await prisma.rep.update({ where: { id: repId }, data: { passwordHash } });
+  revalidatePath("/admin/reps");
+  return undefined;
+}
+
+export async function deleteRepAction(repId: string) {
+  await requireAdmin();
+
+  const photoCount = await prisma.photoRecord.count({ where: { repId } });
+  if (photoCount > 0) {
+    throw new Error(
+      `This rep has ${photoCount} photo${photoCount === 1 ? "" : "s"} on record and can't be deleted — deactivate them instead.`,
+    );
+  }
+
+  await prisma.rep.delete({ where: { id: repId } });
+  revalidatePath("/admin/reps");
+}

@@ -75,3 +75,26 @@ export async function uploadPhotoToDrive(params: {
 
   return { fileId, fileUrl };
 }
+
+export async function deleteDriveFile(fileId: string): Promise<void> {
+  const drive = getDriveClient();
+  await drive.files.delete({ fileId });
+}
+
+export async function renameAndRefileDriveFile(params: {
+  fileId: string;
+  newName: string;
+  targetFolderId: string;
+}): Promise<void> {
+  const drive = getDriveClient();
+
+  const current = await drive.files.get({ fileId: params.fileId, fields: "parents" });
+  const currentParents = current.data.parents ?? [];
+
+  await drive.files.update({
+    fileId: params.fileId,
+    requestBody: { name: params.newName },
+    addParents: currentParents.includes(params.targetFolderId) ? undefined : params.targetFolderId,
+    removeParents: currentParents.filter((p) => p !== params.targetFolderId).join(",") || undefined,
+  });
+}
