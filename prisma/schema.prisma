@@ -1,0 +1,124 @@
+// Prisma schema for the Fieldlenz Photo Collection App.
+// See plan: C:\Users\User\.claude\plans\need-to-make-a-purring-gray.md
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UploadStatus {
+  pending
+  uploading
+  uploaded
+  failed
+}
+
+model Rep {
+  id           String   @id @default(uuid())
+  name         String
+  username     String   @unique
+  passwordHash String
+  active       Boolean  @default(true)
+  isAdmin      Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  createdBrands      Brand[]       @relation("BrandCreatedBy")
+  createdCategories  Category[]    @relation("CategoryCreatedBy")
+  createdPosmTypes   PosmType[]    @relation("PosmTypeCreatedBy")
+  createdShopTypes   ShopType[]    @relation("ShopTypeCreatedBy")
+  photoRecords       PhotoRecord[]
+}
+
+model Brand {
+  id            String   @id @default(uuid())
+  name          String   @unique
+  driveFolderId String?
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  createdById   String?
+  createdBy     Rep?     @relation("BrandCreatedBy", fields: [createdById], references: [id])
+
+  photoRecords PhotoRecord[]
+}
+
+model Category {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  createdById String?
+  createdBy   Rep?     @relation("CategoryCreatedBy", fields: [createdById], references: [id])
+
+  photoRecords PhotoRecord[]
+}
+
+model PosmType {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  createdById String?
+  createdBy   Rep?     @relation("PosmTypeCreatedBy", fields: [createdById], references: [id])
+
+  photoRecords PhotoRecord[]
+}
+
+model ShopType {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  createdById String?
+  createdBy   Rep?     @relation("ShopTypeCreatedBy", fields: [createdById], references: [id])
+
+  photoRecords PhotoRecord[]
+}
+
+model PhotoRecord {
+  id            String       @id @default(uuid())
+  clientQueueId String       @unique
+
+  repId String
+  rep   Rep    @relation(fields: [repId], references: [id])
+
+  brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id])
+
+  isPosm Boolean
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  posmTypeId String?
+  posmType   PosmType? @relation(fields: [posmTypeId], references: [id])
+
+  shopTypeId String
+  shopType   ShopType @relation(fields: [shopTypeId], references: [id])
+
+  shopName String
+
+  gpsLat  Float?
+  gpsLng  Float?
+  address String?
+
+  capturedAt DateTime
+  uploadedAt DateTime?
+
+  filename     String
+  driveFileId  String?
+  driveFileUrl String?
+
+  status       UploadStatus @default(pending)
+  errorMessage String?
+
+  createdAt DateTime @default(now())
+
+  @@index([brandId])
+  @@index([repId])
+  @@index([status])
+  @@index([capturedAt])
+}
