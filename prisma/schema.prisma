@@ -108,9 +108,10 @@ model PhotoRecord {
   capturedAt DateTime
   uploadedAt DateTime?
 
-  filename     String
-  driveFileId  String?
-  driveFileUrl String?
+  filename            String
+  driveFileId         String?
+  driveFileUrl        String?
+  filenameSyncPending Boolean @default(false)
 
   status       UploadStatus @default(pending)
   errorMessage String?
@@ -121,4 +122,5 @@ model PhotoRecord {
   @@index([repId])
   @@index([status])
   @@index([capturedAt])
+  @@index([filenameSyncPending])
 }

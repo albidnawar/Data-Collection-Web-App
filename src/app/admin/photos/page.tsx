@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { buildPhotoWhere } from "@/lib/adminPhotoFilters";
+import { LocalDateTime } from "@/components/admin/LocalDateTime";
+import { DeletePhotoButton } from "@/components/admin/DeletePhotoButton";
 
 const PAGE_SIZE = 50;
 
@@ -128,12 +130,15 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
               <th className="px-3 py-2">Shop name</th>
               <th className="px-3 py-2">Status</th>
               <th className="px-3 py-2">Drive</th>
+              <th className="px-3 py-2">Actions</th>
             </tr>
           </thead>
           <tbody>
             {records.map((r) => (
               <tr key={r.id} className="border-b border-gray-100 dark:border-gray-800">
-                <td className="px-3 py-2 whitespace-nowrap">{r.capturedAt.toLocaleString()}</td>
+                <td className="px-3 py-2 whitespace-nowrap">
+                  <LocalDateTime iso={r.capturedAt.toISOString()} />
+                </td>
                 <td className="px-3 py-2">{r.rep.name}</td>
                 <td className="px-3 py-2">{r.brand.name}</td>
                 <td className="px-3 py-2">{r.isPosm ? "POSM" : "Category Shelf Display"}</td>
@@ -162,11 +167,14 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
                     "—"
                   )}
                 </td>
+                <td className="px-3 py-2">
+                  <DeletePhotoButton id={r.id} />
+                </td>
               </tr>
             ))}
             {records.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-3 py-6 text-center text-gray-500">
+                <td colSpan={10} className="px-3 py-6 text-center text-gray-500">
                   No photos match these filters.
                 </td>
               </tr>

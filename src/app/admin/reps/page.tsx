@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { AddRepForm } from "@/components/admin/AddRepForm";
+import { RepRowControls } from "@/components/admin/RepRowControls";
 import { toggleRepActiveAction, toggleRepAdminAction } from "./actions";
 
 export default async function AdminRepsPage() {
@@ -19,6 +20,7 @@ export default async function AdminRepsPage() {
               <th className="px-3 py-2">Username</th>
               <th className="px-3 py-2">Active</th>
               <th className="px-3 py-2">Admin</th>
+              <th className="px-3 py-2">Manage</th>
             </tr>
           </thead>
           <tbody>
@@ -39,6 +41,9 @@ export default async function AdminRepsPage() {
                       {rep.isAdmin ? "Admin" : "Rep"}
                     </button>
                   </form>
+                </td>
+                <td className="px-3 py-2">
+                  <RepRowControls repId={rep.id} name={rep.name} username={rep.username} />
                 </td>
               </tr>
             ))}
