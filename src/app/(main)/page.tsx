@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { ChipGroup } from "@/components/ChipGroup";
-import { PosmToggle } from "@/components/PosmToggle";
+import { TagKindToggle } from "@/components/TagKindToggle";
 import { useTagCache } from "@/hooks/useTagCache";
 import { notifyQueueChanged } from "@/hooks/usePendingQueue";
 import { getCurrentPosition } from "@/lib/geolocation";
@@ -72,13 +72,12 @@ export default function CapturePage() {
   const canSave =
     photo !== null &&
     brand !== null &&
-    category !== null &&
     shopType !== null &&
     shopName.trim().length > 0 &&
-    (!isPosm || posmType !== null);
+    (isPosm ? posmType !== null : category !== null);
 
   const handleSave = async () => {
-    if (!canSave || !photo || !capturedAt || !brand || !category || !shopType) return;
+    if (!canSave || !photo || !capturedAt || !brand || !shopType) return;
 
     const tagRef = (name: string): TagRef => ({ id: null, name });
 
@@ -87,7 +86,7 @@ export default function CapturePage() {
       photoBlob: photo,
       brand: tagRef(brand),
       isPosm,
-      category: tagRef(category),
+      category: !isPosm && category ? tagRef(category) : null,
       posmType: isPosm && posmType ? tagRef(posmType) : null,
       shopType: tagRef(shopType),
       shopName: shopName.trim(),
@@ -101,9 +100,9 @@ export default function CapturePage() {
     });
 
     recordTagUse("brand", brand);
-    recordTagUse("category", category);
     recordTagUse("shopType", shopType);
     if (isPosm && posmType) recordTagUse("posmType", posmType);
+    if (!isPosm && category) recordTagUse("category", category);
 
     notifyQueueChanged();
     void drainUploadQueue();
@@ -178,9 +177,9 @@ export default function CapturePage() {
         onAddNew={(name) => handleAddNewTag("brand", name)}
       />
 
-      <PosmToggle value={isPosm} onChange={setIsPosm} />
+      <TagKindToggle isPosm={isPosm} onChange={setIsPosm} />
 
-      {isPosm && (
+      {isPosm ? (
         <ChipGroup
           label="POSM Type"
           options={posmTypeOptions}
@@ -188,15 +187,15 @@ export default function CapturePage() {
           onSelect={setPosmType}
           onAddNew={(name) => handleAddNewTag("posmType", name)}
         />
+      ) : (
+        <ChipGroup
+          label="Category Shelf Display Type"
+          options={categoryOptions}
+          selected={category}
+          onSelect={setCategory}
+          onAddNew={(name) => handleAddNewTag("category", name)}
+        />
       )}
-
-      <ChipGroup
-        label="Category / Share of Shelf"
-        options={categoryOptions}
-        selected={category}
-        onSelect={setCategory}
-        onAddNew={(name) => handleAddNewTag("category", name)}
-      />
 
       <ChipGroup
         label="Shop Type"

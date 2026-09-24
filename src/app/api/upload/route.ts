@@ -35,11 +35,12 @@ export async function POST(request: Request) {
   if (
     !clientQueueId ||
     !brandName ||
-    !categoryName ||
     !shopTypeName ||
     !shopName ||
     !capturedAtRaw ||
-    !(photo instanceof File)
+    !(photo instanceof File) ||
+    (isPosm && !posmTypeName) ||
+    (!isPosm && !categoryName)
   ) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
@@ -57,11 +58,13 @@ export async function POST(request: Request) {
       update: {},
       create: { name: brandName, createdById: session.user.id },
     }),
-    prisma.category.upsert({
-      where: { name: categoryName },
-      update: {},
-      create: { name: categoryName, createdById: session.user.id },
-    }),
+    !isPosm && categoryName
+      ? prisma.category.upsert({
+          where: { name: categoryName },
+          update: {},
+          create: { name: categoryName, createdById: session.user.id },
+        })
+      : Promise.resolve(null),
     prisma.shopType.upsert({
       where: { name: shopTypeName },
       update: {},
@@ -80,7 +83,7 @@ export async function POST(request: Request) {
     {
       brand: brandName,
       isPosm,
-      posmType: isPosm ? posmTypeName : null,
+      typeName: isPosm ? (posmTypeName ?? "") : (categoryName ?? ""),
       shopType: shopTypeName,
     },
     capturedAt,
@@ -97,7 +100,7 @@ export async function POST(request: Request) {
       repId: session.user.id,
       brandId: brand.id,
       isPosm,
-      categoryId: category.id,
+      categoryId: category?.id ?? null,
       posmTypeId: posmType?.id ?? null,
       shopTypeId: shopType.id,
       shopName,

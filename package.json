@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "concurrently -p none \"serwist build --watch\" \"next dev\"",
-    "build": "next build && serwist build",
+    "build": "prisma migrate deploy && next build && serwist build",
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate"

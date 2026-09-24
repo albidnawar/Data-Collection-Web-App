@@ -13,7 +13,7 @@ function buildFormData(upload: PendingUpload): FormData {
   formData.set("clientQueueId", upload.clientQueueId);
   formData.set("brandName", upload.brand.name);
   formData.set("isPosm", String(upload.isPosm));
-  formData.set("categoryName", upload.category.name);
+  if (upload.category) formData.set("categoryName", upload.category.name);
   if (upload.posmType) formData.set("posmTypeName", upload.posmType.name);
   formData.set("shopTypeName", upload.shopType.name);
   formData.set("shopName", upload.shopName);

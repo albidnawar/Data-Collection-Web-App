@@ -1,7 +1,7 @@
 export interface FilenameTags {
   brand: string;
   isPosm: boolean;
-  posmType: string | null;
+  typeName: string;
   shopType: string;
 }
 
@@ -35,11 +35,11 @@ function formatTime(date: Date): string {
 
 export function generateFilename(tags: FilenameTags, capturedAt: Date): string {
   const brand = sanitizeForFilename(tags.brand);
-  const posmPart = tags.isPosm ? "POSM" : "NoPOSM";
-  const typePart = tags.isPosm && tags.posmType ? sanitizeForFilename(tags.posmType) : "NA";
+  const kindPart = tags.isPosm ? "POSM" : "CategoryShelfDisplay";
+  const typePart = sanitizeForFilename(tags.typeName);
   const shopPart = sanitizeForFilename(tags.shopType);
   const datePart = formatDate(capturedAt);
   const timePart = formatTime(capturedAt);
 
-  return `${[brand, posmPart, typePart, shopPart, datePart, timePart].join("_")}.jpg`;
+  return `${[brand, kindPart, typePart, shopPart, datePart, timePart].join("_")}.jpg`;
 }

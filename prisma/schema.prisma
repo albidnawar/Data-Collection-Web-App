@@ -90,8 +90,8 @@ model PhotoRecord {
 
   isPosm Boolean
 
-  categoryId String
-  category   Category @relation(fields: [categoryId], references: [id])
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
 
   posmTypeId String?
   posmType   PosmType? @relation(fields: [posmTypeId], references: [id])
