@@ -55,14 +55,7 @@ export default function CapturePage() {
   };
 
   const handleAddNewTag = async (type: TagType, name: string) => {
-    await addLocalTag(type, { id: crypto.randomUUID(), name });
-    if (navigator.onLine) {
-      fetch("/api/tags", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, name }),
-      }).catch(() => {});
-    }
+    await addLocalTag(type, name);
   };
 
   const canSave =
