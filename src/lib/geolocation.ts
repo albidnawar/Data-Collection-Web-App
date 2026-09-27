@@ -8,14 +8,26 @@ export type GeoOutcome =
   | { status: "denied" }
   | { status: "unavailable" };
 
+const HIGH_ACCURACY_TIMEOUT_MS = 5000;
+const LOW_ACCURACY_TIMEOUT_MS = 10000;
+
+function toOutcome(position: GeolocationPosition): GeoOutcome {
+  return { status: "success", result: { lat: position.coords.latitude, lng: position.coords.longitude } };
+}
+
 /**
  * Like getCurrentPosition, but distinguishes "permission denied" (the rep needs to go
  * fix a browser/OS setting) from a generic failure (no fix, timeout, no GPS signal —
  * nothing actionable to show them). Error `code` is part of the standard Geolocation
  * API (unlike the newer, less consistently supported Permissions API), so this works
  * the same in Safari, Chrome, etc.
+ *
+ * Tries a fast GPS-precise fix first, then falls back to slower-but-more-reliable
+ * network/Wi-Fi-based positioning if that fails — GPS alone is notoriously unreliable
+ * indoors (concrete/metal blocks satellite visibility), and reps are usually inside a
+ * store when they take a photo, so relying on GPS alone would fail most of the time.
  */
-export function getCurrentPositionDetailed(timeoutMs = 8000): Promise<GeoOutcome> {
+export function getCurrentPositionDetailed(): Promise<GeoOutcome> {
   return new Promise((resolve) => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
       resolve({ status: "unavailable" });
@@ -23,19 +35,28 @@ export function getCurrentPositionDetailed(timeoutMs = 8000): Promise<GeoOutcome
     }
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        resolve({ status: "success", result: { lat: position.coords.latitude, lng: position.coords.longitude } });
-      },
+      (position) => resolve(toOutcome(position)),
       (error) => {
-        resolve(error.code === error.PERMISSION_DENIED ? { status: "denied" } : { status: "unavailable" });
+        if (error.code === error.PERMISSION_DENIED) {
+          resolve({ status: "denied" });
+          return;
+        }
+        // GPS likely failed indoors — fall back to network-based positioning.
+        navigator.geolocation.getCurrentPosition(
+          (position) => resolve(toOutcome(position)),
+          (fallbackError) => {
+            resolve(fallbackError.code === fallbackError.PERMISSION_DENIED ? { status: "denied" } : { status: "unavailable" });
+          },
+          { enableHighAccuracy: false, timeout: LOW_ACCURACY_TIMEOUT_MS, maximumAge: 60000 },
+        );
       },
-      { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 60000 },
+      { enableHighAccuracy: true, timeout: HIGH_ACCURACY_TIMEOUT_MS, maximumAge: 60000 },
     );
   });
 }
 
-export async function getCurrentPosition(timeoutMs = 8000): Promise<GeoResult | null> {
-  const outcome = await getCurrentPositionDetailed(timeoutMs);
+export async function getCurrentPosition(): Promise<GeoResult | null> {
+  const outcome = await getCurrentPositionDetailed();
   return outcome.status === "success" ? outcome.result : null;
 }
 

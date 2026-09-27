@@ -23,6 +23,7 @@ export default function CapturePage() {
   const [gps, setGps] = useState<{ lat: number; lng: number } | null>(null);
   const [locatingGps, setLocatingGps] = useState(false);
   const [locationBlocked, setLocationBlocked] = useState(false);
+  const [locationUnavailable, setLocationUnavailable] = useState(false);
 
   const [brand, setBrand] = useState<string | null>(null);
   const [isPosm, setIsPosm] = useState(false);
@@ -37,6 +38,7 @@ export default function CapturePage() {
     const outcome = await getCurrentPositionDetailed();
     setLocatingGps(false);
     setLocationBlocked(outcome.status === "denied");
+    setLocationUnavailable(outcome.status === "unavailable");
     if (outcome.status === "success") setGps(outcome.result);
     return outcome;
   };
@@ -232,6 +234,12 @@ export default function CapturePage() {
         onSelect={setShopType}
         onAddNew={(name) => handleAddNewTag("shopType", name)}
       />
+
+      {locationUnavailable && !locationBlocked && !locatingGps && (
+        <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+          Couldn&apos;t get a GPS fix for this photo (common indoors) — it will save without a location.
+        </p>
+      )}
 
       {saveMessage && (
         <p className="text-center text-sm font-medium text-green-600">{saveMessage}</p>
