@@ -4,8 +4,6 @@ import { prisma } from "@/lib/db";
 import { generateFilename } from "@/lib/filename";
 import { resolveOrCreateBrandFolder, uploadPhotoToDrive } from "@/lib/driveFolders";
 import { resolveOrCreateTag } from "@/lib/tagResolve";
-import { isRawCoordsAddress } from "@/lib/geocoding";
-import { findNearbyRecentAddress, reverseGeocode } from "@/lib/reverseGeocode";
 
 export const maxDuration = 60;
 
@@ -73,20 +71,6 @@ export async function POST(request: Request) {
   const gpsLat = gpsLatRaw ? Number(gpsLatRaw) : null;
   const gpsLng = gpsLngRaw ? Number(gpsLngRaw) : null;
 
-  // If the client never managed to geocode the location (e.g. it was captured
-  // offline), it still only has raw coordinates — try again now that we're
-  // definitely online. Leaves a manually-edited or already-geocoded address alone.
-  let finalAddress = address;
-  if (gpsLat !== null && gpsLng !== null && isRawCoordsAddress(address, gpsLat, gpsLng)) {
-    const nearby = await findNearbyRecentAddress(session.user.id, gpsLat, gpsLng);
-    if (nearby) {
-      finalAddress = nearby;
-    } else {
-      const geocoded = await reverseGeocode(gpsLat, gpsLng);
-      if (geocoded) finalAddress = geocoded;
-    }
-  }
-
   const photoRecord = await prisma.photoRecord.upsert({
     where: { clientQueueId },
     update: {
@@ -103,7 +87,7 @@ export async function POST(request: Request) {
       shopTypeId: shopType.id,
       gpsLat,
       gpsLng,
-      address: finalAddress,
+      address,
       capturedAt,
       filename,
       status: "uploading",
