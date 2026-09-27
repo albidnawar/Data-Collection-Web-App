@@ -6,7 +6,8 @@ import { TagKindToggle } from "@/components/TagKindToggle";
 import { useTagCache } from "@/hooks/useTagCache";
 import { notifyQueueChanged } from "@/hooks/usePendingQueue";
 import { getCurrentPosition } from "@/lib/geolocation";
-import { formatRawCoords } from "@/lib/geocoding";
+import { formatRawCoords, haversineDistanceMeters, NEARBY_RADIUS_METERS } from "@/lib/geocoding";
+import { getLastLocation, setLastLocation } from "@/lib/lastLocationCache";
 import { compressImageIfNeeded } from "@/lib/imageCompression";
 import { addPendingUpload, type TagRef } from "@/lib/indexedDb";
 import { recordTagUse, sortByMostRecentlyUsed } from "@/lib/recentTags";
@@ -59,6 +60,15 @@ export default function CapturePage() {
       const fallback = formatRawCoords(result.lat, result.lng);
       setAddress((prev) => (prev ? prev : fallback));
 
+      const cached = getLastLocation();
+      if (cached && haversineDistanceMeters(result.lat, result.lng, cached.lat, cached.lng) <= NEARBY_RADIUS_METERS) {
+        // Close enough to the last geocoded spot (e.g. another POSM in the same
+        // store) — reuse its address instead of spending another API call.
+        setAddress((prev) => (prev === "" || prev === fallback ? cached.address : prev));
+        setLocatingGps(false);
+        return;
+      }
+
       if (navigator.onLine) {
         try {
           const res = await fetch(`/api/geocode?lat=${result.lat}&lng=${result.lng}`);
@@ -66,6 +76,7 @@ export default function CapturePage() {
             const data = await res.json();
             if (data.address) {
               setAddress((prev) => (prev === "" || prev === fallback ? data.address : prev));
+              setLastLocation({ lat: result.lat, lng: result.lng, address: data.address });
             }
           }
         } catch {

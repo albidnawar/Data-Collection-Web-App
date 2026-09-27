@@ -5,7 +5,7 @@ import { generateFilename } from "@/lib/filename";
 import { resolveOrCreateBrandFolder, uploadPhotoToDrive } from "@/lib/driveFolders";
 import { resolveOrCreateTag } from "@/lib/tagResolve";
 import { isRawCoordsAddress } from "@/lib/geocoding";
-import { reverseGeocode } from "@/lib/reverseGeocode";
+import { findNearbyRecentAddress, reverseGeocode } from "@/lib/reverseGeocode";
 
 export const maxDuration = 60;
 
@@ -78,8 +78,13 @@ export async function POST(request: Request) {
   // definitely online. Leaves a manually-edited or already-geocoded address alone.
   let finalAddress = address;
   if (gpsLat !== null && gpsLng !== null && isRawCoordsAddress(address, gpsLat, gpsLng)) {
-    const geocoded = await reverseGeocode(gpsLat, gpsLng);
-    if (geocoded) finalAddress = geocoded;
+    const nearby = await findNearbyRecentAddress(session.user.id, gpsLat, gpsLng);
+    if (nearby) {
+      finalAddress = nearby;
+    } else {
+      const geocoded = await reverseGeocode(gpsLat, gpsLng);
+      if (geocoded) finalAddress = geocoded;
+    }
   }
 
   const photoRecord = await prisma.photoRecord.upsert({
