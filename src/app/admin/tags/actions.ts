@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { isTagType, type TagType } from "@/lib/tagTypes";
 import { getDriveClient } from "@/lib/driveClient";
-import { countPhotosUsingTag, mergeAndDeleteTag } from "@/lib/tagMerge";
+import { countPhotosUsingTag, deleteTagAndAllPhotos, mergeAndDeleteTag } from "@/lib/tagMerge";
 import { runFilenameSyncBatch } from "@/lib/filenameSync";
 
 async function requireAdminId(): Promise<string> {
@@ -101,6 +101,21 @@ export async function deleteTagAction(type: string, id: string, mergeIntoId: str
   if (!isTagType(type)) throw new Error("Invalid tag type");
 
   await mergeAndDeleteTag(type, id, mergeIntoId);
+
+  revalidatePath("/admin/tags");
+  revalidatePath("/admin/photos");
+  revalidatePath("/admin");
+}
+
+export async function deleteTagAndPhotosAction(type: string, id: string, password: string) {
+  await requireAdminId();
+  if (!isTagType(type)) throw new Error("Invalid tag type");
+
+  const expected = process.env.TAG_HARD_DELETE_PASSWORD;
+  if (!expected) throw new Error("Permanent delete is not configured on this server");
+  if (password !== expected) throw new Error("Incorrect password");
+
+  await deleteTagAndAllPhotos(type, id);
 
   revalidatePath("/admin/tags");
   revalidatePath("/admin/photos");

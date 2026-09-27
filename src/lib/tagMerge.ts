@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { generateFilename } from "@/lib/filename";
+import { deleteDriveFile } from "@/lib/driveFolders";
 import type { TagType } from "@/lib/tagTypes";
 import type { Prisma } from "@/generated/prisma/client";
 
@@ -106,4 +107,24 @@ export async function mergeAndDeleteTag(
   }
 
   await deleteTagRow(type, deleteId);
+}
+
+export async function deleteTagAndAllPhotos(type: TagType, id: string): Promise<void> {
+  const affected = await prisma.photoRecord.findMany({
+    where: whereForType(type, id),
+    select: { id: true, driveFileId: true },
+  });
+
+  for (const record of affected) {
+    if (record.driveFileId) {
+      try {
+        await deleteDriveFile(record.driveFileId);
+      } catch {
+        // Drive file already gone or inaccessible — still remove the DB record.
+      }
+    }
+  }
+
+  await prisma.photoRecord.deleteMany({ where: whereForType(type, id) });
+  await deleteTagRow(type, id);
 }
