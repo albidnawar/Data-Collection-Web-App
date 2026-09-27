@@ -1,11 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChipGroup } from "@/components/ChipGroup";
 import { TagKindToggle } from "@/components/TagKindToggle";
 import { useTagCache } from "@/hooks/useTagCache";
 import { notifyQueueChanged } from "@/hooks/usePendingQueue";
-import { getCurrentPosition } from "@/lib/geolocation";
+import { getCurrentPositionDetailed, getLocationHelp } from "@/lib/geolocation";
 import { formatRawCoords } from "@/lib/geocoding";
 import { compressImageIfNeeded } from "@/lib/imageCompression";
 import { addPendingUpload, type TagRef } from "@/lib/indexedDb";
@@ -22,6 +22,7 @@ export default function CapturePage() {
   const [capturedAt, setCapturedAt] = useState<Date | null>(null);
   const [gps, setGps] = useState<{ lat: number; lng: number } | null>(null);
   const [locatingGps, setLocatingGps] = useState(false);
+  const [locationBlocked, setLocationBlocked] = useState(false);
 
   const [brand, setBrand] = useState<string | null>(null);
   const [isPosm, setIsPosm] = useState(false);
@@ -30,6 +31,26 @@ export default function CapturePage() {
   const [shopType, setShopType] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [compressing, setCompressing] = useState(false);
+
+  const requestLocation = async () => {
+    setLocatingGps(true);
+    const outcome = await getCurrentPositionDetailed();
+    setLocatingGps(false);
+    setLocationBlocked(outcome.status === "denied");
+    if (outcome.status === "success") setGps(outcome.result);
+    return outcome;
+  };
+
+  // Ask for location right away, on the first screen the rep sees — so the native
+  // "Allow location?" prompt shows up immediately instead of only after they've
+  // already taken a photo (and is easy to find if they need to fix it manually).
+  // Geolocation is a client-only browser API that can only run post-mount, and its
+  // result can only be known asynchronously — there's no way to derive this from
+  // props/state during render, so updating state once it resolves is unavoidable.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void requestLocation();
+  }, []);
 
   const handleTakePhoto = () => fileInputRef.current?.click();
 
@@ -47,11 +68,7 @@ export default function CapturePage() {
     setPhoto(file);
     setPreviewUrl(URL.createObjectURL(file));
 
-    setLocatingGps(true);
-    void getCurrentPosition().then((result) => {
-      if (result) setGps(result);
-      setLocatingGps(false);
-    });
+    void requestLocation();
   };
 
   const handleAddNewTag = async (type: TagType, name: string) => {
@@ -125,6 +142,27 @@ export default function CapturePage() {
         onChange={handleFileChange}
         className="hidden"
       />
+
+      {locationBlocked && (
+        <div className="flex flex-col gap-2 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm dark:border-amber-900 dark:bg-amber-950">
+          <p className="font-semibold text-amber-800 dark:text-amber-200">
+            Location access is off — photos won&apos;t record where they were taken until it&apos;s turned back on.
+          </p>
+          <p className="font-medium text-amber-800 dark:text-amber-200">{getLocationHelp().title}:</p>
+          <ol className="list-decimal space-y-1 pl-5 text-amber-800 dark:text-amber-200">
+            {getLocationHelp().steps.map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ol>
+          <button
+            type="button"
+            onClick={() => void requestLocation()}
+            className="self-start rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white"
+          >
+            I&apos;ve done this — try again
+          </button>
+        </div>
+      )}
 
       {compressing ? (
         <div className="flex aspect-[4/3] max-h-[45vh] w-full flex-col items-center justify-center gap-2 rounded-2xl bg-blue-600 text-white">
