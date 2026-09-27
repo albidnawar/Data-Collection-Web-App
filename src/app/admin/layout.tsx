@@ -2,6 +2,12 @@ import Link from "next/link";
 import { logoutAction } from "../(main)/actions";
 import { AutoRefresh } from "@/components/admin/AutoRefresh";
 
+// Admin pages read straight from the DB on every render and rely on AutoRefresh's
+// polling to feel live — without this, Next can cache the rendered page and a rep's
+// change (e.g. a new tag) wouldn't show up until an admin's own action busted the
+// cache via revalidatePath.
+export const dynamic = "force-dynamic";
+
 const TABS = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/photos", label: "Photos" },

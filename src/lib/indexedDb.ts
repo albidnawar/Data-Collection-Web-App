@@ -15,7 +15,6 @@ export interface PendingUpload {
   category: TagRef | null;
   posmType: TagRef | null;
   shopType: TagRef;
-  shopName: string;
   gpsLat: number | null;
   gpsLng: number | null;
   address: string | null;

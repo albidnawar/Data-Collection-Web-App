@@ -6,6 +6,7 @@ import { TagKindToggle } from "@/components/TagKindToggle";
 import { useTagCache } from "@/hooks/useTagCache";
 import { notifyQueueChanged } from "@/hooks/usePendingQueue";
 import { getCurrentPosition } from "@/lib/geolocation";
+import { formatRawCoords } from "@/lib/geocoding";
 import { compressImageIfNeeded } from "@/lib/imageCompression";
 import { addPendingUpload, type TagRef } from "@/lib/indexedDb";
 import { recordTagUse, sortByMostRecentlyUsed } from "@/lib/recentTags";
@@ -27,7 +28,6 @@ export default function CapturePage() {
   const [category, setCategory] = useState<string | null>(null);
   const [posmType, setPosmType] = useState<string | null>(null);
   const [shopType, setShopType] = useState<string | null>(null);
-  const [shopName, setShopName] = useState("");
   const [address, setAddress] = useState("");
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [compressing, setCompressing] = useState(false);
@@ -49,12 +49,31 @@ export default function CapturePage() {
     setPreviewUrl(URL.createObjectURL(file));
 
     setLocatingGps(true);
-    void getCurrentPosition().then((result) => {
-      setLocatingGps(false);
-      if (result) {
-        setGps(result);
-        setAddress((prev) => (prev ? prev : `${result.lat.toFixed(5)}, ${result.lng.toFixed(5)}`));
+    void getCurrentPosition().then(async (result) => {
+      if (!result) {
+        setLocatingGps(false);
+        return;
       }
+
+      setGps(result);
+      const fallback = formatRawCoords(result.lat, result.lng);
+      setAddress((prev) => (prev ? prev : fallback));
+
+      if (navigator.onLine) {
+        try {
+          const res = await fetch(`/api/geocode?lat=${result.lat}&lng=${result.lng}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.address) {
+              setAddress((prev) => (prev === "" || prev === fallback ? data.address : prev));
+            }
+          }
+        } catch {
+          // offline or geocoding failed — keep the raw-coordinates fallback
+        }
+      }
+
+      setLocatingGps(false);
     });
   };
 
@@ -73,7 +92,6 @@ export default function CapturePage() {
     photo !== null &&
     brand !== null &&
     shopType !== null &&
-    shopName.trim().length > 0 &&
     (isPosm ? posmType !== null : category !== null);
 
   const handleSave = async () => {
@@ -89,7 +107,6 @@ export default function CapturePage() {
       category: !isPosm && category ? tagRef(category) : null,
       posmType: isPosm && posmType ? tagRef(posmType) : null,
       shopType: tagRef(shopType),
-      shopName: shopName.trim(),
       gpsLat: gps?.lat ?? null,
       gpsLng: gps?.lng ?? null,
       address: address.trim() || null,
@@ -117,8 +134,8 @@ export default function CapturePage() {
     setCategory(null);
     setPosmType(null);
     setIsPosm(false);
-    // Smart defaults: brand, shop type, shop name, and address carry forward
-    // since reps usually shoot several photos of the same brand/shop in a row.
+    // Smart defaults: brand, shop type, and address carry forward since reps
+    // usually shoot several photos of the same brand/shop in a row.
   };
 
   const brandOptions = cache ? sortByMostRecentlyUsed("brand", cache.brands) : [];
@@ -207,23 +224,13 @@ export default function CapturePage() {
       />
 
       <label className="flex flex-col gap-2">
-        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Shop name / branch</span>
-        <input
-          value={shopName}
-          onChange={(e) => setShopName(e.target.value)}
-          placeholder="e.g. Downtown Supermarket"
-          className="rounded-xl border border-gray-300 px-4 py-3 text-base focus:border-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900"
-        />
-      </label>
-
-      <label className="flex flex-col gap-2">
         <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
           Location {locatingGps && "(detecting…)"}
         </span>
         <input
           value={address}
           onChange={(e) => setAddress(e.target.value)}
-          placeholder="Auto-detected — tap to edit"
+          placeholder="Auto-detected from GPS — tap to edit"
           className="rounded-xl border border-gray-300 px-4 py-3 text-base focus:border-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900"
         />
       </label>

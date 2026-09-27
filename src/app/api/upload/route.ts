@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { generateFilename } from "@/lib/filename";
 import { resolveOrCreateBrandFolder, uploadPhotoToDrive } from "@/lib/driveFolders";
 import { resolveOrCreateTag } from "@/lib/tagResolve";
+import { isRawCoordsAddress } from "@/lib/geocoding";
+import { reverseGeocode } from "@/lib/reverseGeocode";
 
 export const maxDuration = 60;
 
@@ -24,7 +26,6 @@ export async function POST(request: Request) {
   const brandName = requireString(formData, "brandName");
   const categoryName = requireString(formData, "categoryName");
   const shopTypeName = requireString(formData, "shopTypeName");
-  const shopName = requireString(formData, "shopName");
   const capturedAtRaw = requireString(formData, "capturedAt");
   const isPosm = formData.get("isPosm") === "true";
   const posmTypeName = requireString(formData, "posmTypeName");
@@ -37,7 +38,6 @@ export async function POST(request: Request) {
     !clientQueueId ||
     !brandName ||
     !shopTypeName ||
-    !shopName ||
     !capturedAtRaw ||
     !(photo instanceof File) ||
     (isPosm && !posmTypeName) ||
@@ -70,6 +70,18 @@ export async function POST(request: Request) {
     capturedAt,
   );
 
+  const gpsLat = gpsLatRaw ? Number(gpsLatRaw) : null;
+  const gpsLng = gpsLngRaw ? Number(gpsLngRaw) : null;
+
+  // If the client never managed to geocode the location (e.g. it was captured
+  // offline), it still only has raw coordinates — try again now that we're
+  // definitely online. Leaves a manually-edited or already-geocoded address alone.
+  let finalAddress = address;
+  if (gpsLat !== null && gpsLng !== null && isRawCoordsAddress(address, gpsLat, gpsLng)) {
+    const geocoded = await reverseGeocode(gpsLat, gpsLng);
+    if (geocoded) finalAddress = geocoded;
+  }
+
   const photoRecord = await prisma.photoRecord.upsert({
     where: { clientQueueId },
     update: {
@@ -84,10 +96,9 @@ export async function POST(request: Request) {
       categoryId: category?.id ?? null,
       posmTypeId: posmType?.id ?? null,
       shopTypeId: shopType.id,
-      shopName,
-      gpsLat: gpsLatRaw ? Number(gpsLatRaw) : null,
-      gpsLng: gpsLngRaw ? Number(gpsLngRaw) : null,
-      address,
+      gpsLat,
+      gpsLng,
+      address: finalAddress,
       capturedAt,
       filename,
       status: "uploading",

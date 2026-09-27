@@ -99,7 +99,7 @@ model PhotoRecord {
   shopTypeId String
   shopType   ShopType @relation(fields: [shopTypeId], references: [id])
 
-  shopName String
+  shopName String?
 
   gpsLat  Float?
   gpsLng  Float?
