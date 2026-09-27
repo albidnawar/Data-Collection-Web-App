@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
-import { toggleTagActiveAction, renameTagAction } from "./actions";
+import { toggleTagActiveAction } from "./actions";
 import { AddTagForm } from "@/components/admin/AddTagForm";
+import { RenameTagForm } from "@/components/admin/RenameTagForm";
 import { TagDeleteControl } from "@/components/admin/TagDeleteControl";
 import { RerunSyncButton } from "@/components/admin/RerunSyncButton";
 import type { TagType } from "@/lib/tagTypes";
@@ -19,16 +20,7 @@ function TagSection({ title, type, label, items }: { title: string; type: TagTyp
         {items.length === 0 && <li className="text-sm text-gray-500">None yet.</li>}
         {items.map((item) => (
           <li key={item.id} className="flex items-center gap-3">
-            <form action={renameTagAction.bind(null, type, item.id)} className="flex flex-1 gap-2">
-              <input
-                name="name"
-                defaultValue={item.name}
-                className="flex-1 rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800"
-              />
-              <button type="submit" className="rounded bg-gray-900 px-3 py-1 text-xs font-medium text-white dark:bg-gray-100 dark:text-gray-900">
-                Save
-              </button>
-            </form>
+            <RenameTagForm type={type} id={item.id} name={item.name} />
             <form action={toggleTagActiveAction.bind(null, type, item.id, !item.active)}>
               <button type="submit" className={`text-xs font-medium ${item.active ? "text-green-600" : "text-gray-400"}`}>
                 {item.active ? "Active" : "Inactive"}

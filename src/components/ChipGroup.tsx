@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { findSimilarTags } from "@/lib/similarTags";
 
 export interface ChipOption {
   id: string | null;
@@ -18,11 +19,25 @@ interface ChipGroupProps {
 export function ChipGroup({ label, options, selected, onSelect, onAddNew }: ChipGroupProps) {
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState("");
+  const [usedExisting, setUsedExisting] = useState<string | null>(null);
+
+  const { exact, suggestions } = useMemo(() => findSimilarTags(draft, options), [draft, options]);
+
+  const selectExisting = (name: string) => {
+    onSelect(name);
+    setUsedExisting(name);
+    setDraft("");
+    setAdding(false);
+  };
 
   const submitNew = () => {
     const trimmed = draft.trim();
     if (trimmed.length === 0) {
       setAdding(false);
+      return;
+    }
+    if (exact) {
+      selectExisting(exact.name);
       return;
     }
     onAddNew(trimmed);
@@ -55,7 +70,10 @@ export function ChipGroup({ label, options, selected, onSelect, onAddNew }: Chip
             <input
               autoFocus
               value={draft}
-              onChange={(e) => setDraft(e.target.value)}
+              onChange={(e) => {
+                setDraft(e.target.value);
+                setUsedExisting(null);
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") submitNew();
                 if (e.key === "Escape") setAdding(false);
@@ -68,13 +86,43 @@ export function ChipGroup({ label, options, selected, onSelect, onAddNew }: Chip
         ) : (
           <button
             type="button"
-            onClick={() => setAdding(true)}
+            onClick={() => {
+              setAdding(true);
+              setUsedExisting(null);
+            }}
             className="rounded-full border border-dashed border-gray-400 px-4 py-2 text-sm font-medium text-gray-500 active:bg-gray-100 dark:border-gray-600 dark:text-gray-400"
           >
             + Add new
           </button>
         )}
       </div>
+
+      {adding && exact && (
+        <span className="text-xs text-gray-500 dark:text-gray-400">
+          Matches existing &ldquo;{exact.name}&rdquo; — press Enter to use it.
+        </span>
+      )}
+
+      {adding && !exact && suggestions.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-gray-500 dark:text-gray-400">Did you mean:</span>
+          {suggestions.map((s) => (
+            <button
+              key={s.name}
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => selectExisting(s.name)}
+              className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200"
+            >
+              {s.name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {usedExisting && (
+        <span className="text-xs text-gray-500 dark:text-gray-400">Using existing &ldquo;{usedExisting}&rdquo;.</span>
+      )}
     </div>
   );
 }

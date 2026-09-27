@@ -7,6 +7,7 @@ import { isTagType, type TagType } from "@/lib/tagTypes";
 import { getDriveClient } from "@/lib/driveClient";
 import { countPhotosUsingTag, deleteTagAndAllPhotos, mergeAndDeleteTag } from "@/lib/tagMerge";
 import { runFilenameSyncBatch } from "@/lib/filenameSync";
+import { findExistingTagCaseInsensitive } from "@/lib/tagResolve";
 
 async function requireAdminId(): Promise<string> {
   const session = await auth();
@@ -47,9 +48,13 @@ export async function addTagAction(type: string, _prevState: string | undefined,
 
   const name = formData.get("name");
   if (typeof name !== "string" || name.trim().length === 0) return "Name is required";
+  const trimmed = name.trim();
+
+  const existing = await findExistingTagCaseInsensitive(type, trimmed);
+  if (existing) return `That name already exists as "${existing.name}"`;
 
   try {
-    await createTag(type, name.trim(), adminId);
+    await createTag(type, trimmed, adminId);
   } catch {
     return "That name already exists";
   }
@@ -65,15 +70,27 @@ export async function toggleTagActiveAction(type: string, id: string, active: bo
   revalidatePath("/admin/tags");
 }
 
-export async function renameTagAction(type: string, id: string, formData: FormData) {
+export async function renameTagAction(
+  type: string,
+  id: string,
+  _prevState: string | undefined,
+  formData: FormData,
+): Promise<string | undefined> {
   await requireAdminId();
-  if (!isTagType(type)) throw new Error("Invalid tag type");
+  if (!isTagType(type)) return "Invalid tag type";
 
   const newName = formData.get("name");
-  if (typeof newName !== "string" || newName.trim().length === 0) return;
+  if (typeof newName !== "string" || newName.trim().length === 0) return "Name is required";
   const trimmed = newName.trim();
 
-  await updateTag(type, id, { name: trimmed });
+  const existing = await findExistingTagCaseInsensitive(type, trimmed, id);
+  if (existing) return `That name already exists as "${existing.name}"`;
+
+  try {
+    await updateTag(type, id, { name: trimmed });
+  } catch {
+    return "That name already exists";
+  }
 
   if (type === "brand") {
     const brand = await prisma.brand.findUnique({ where: { id } });
@@ -88,6 +105,7 @@ export async function renameTagAction(type: string, id: string, formData: FormDa
   }
 
   revalidatePath("/admin/tags");
+  return undefined;
 }
 
 export async function countPhotosForTagAction(type: string, id: string): Promise<number> {

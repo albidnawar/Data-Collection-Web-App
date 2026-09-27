@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getTagCache, setTagCache, addTagToCache, type TagCache, type TagOption } from "@/lib/indexedDb";
 import type { TagType } from "@/lib/tagTypes";
 
-const REFRESH_INTERVAL_MS = 60 * 60 * 1000;
+const PERIODIC_REFRESH_MS = 15000;
 
 type CacheKey = "brands" | "categories" | "posmTypes" | "shopTypes";
 
@@ -34,14 +34,26 @@ export function useTagCache() {
     getTagCache().then((cached) => {
       if (cached) {
         setCache(cached);
-        const age = Date.now() - new Date(cached.fetchedAt).getTime();
-        if (age > REFRESH_INTERVAL_MS && navigator.onLine) {
-          void refreshFromServer();
-        }
-      } else if (navigator.onLine) {
+      }
+      if (navigator.onLine) {
         void refreshFromServer();
       }
     });
+
+    const onOnline = () => void refreshFromServer();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") void refreshFromServer();
+    };
+
+    window.addEventListener("online", onOnline);
+    document.addEventListener("visibilitychange", onVisibility);
+    const interval = window.setInterval(() => void refreshFromServer(), PERIODIC_REFRESH_MS);
+
+    return () => {
+      window.removeEventListener("online", onOnline);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.clearInterval(interval);
+    };
   }, [refreshFromServer]);
 
   const addLocalTag = useCallback(async (type: TagType, tag: TagOption) => {

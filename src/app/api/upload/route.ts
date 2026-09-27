@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { generateFilename } from "@/lib/filename";
 import { resolveOrCreateBrandFolder, uploadPhotoToDrive } from "@/lib/driveFolders";
+import { resolveOrCreateTag } from "@/lib/tagResolve";
 
 export const maxDuration = 60;
 
@@ -53,38 +54,18 @@ export async function POST(request: Request) {
   }
 
   const [brand, category, shopType, posmType] = await Promise.all([
-    prisma.brand.upsert({
-      where: { name: brandName },
-      update: {},
-      create: { name: brandName, createdById: session.user.id },
-    }),
-    !isPosm && categoryName
-      ? prisma.category.upsert({
-          where: { name: categoryName },
-          update: {},
-          create: { name: categoryName, createdById: session.user.id },
-        })
-      : Promise.resolve(null),
-    prisma.shopType.upsert({
-      where: { name: shopTypeName },
-      update: {},
-      create: { name: shopTypeName, createdById: session.user.id },
-    }),
-    isPosm && posmTypeName
-      ? prisma.posmType.upsert({
-          where: { name: posmTypeName },
-          update: {},
-          create: { name: posmTypeName, createdById: session.user.id },
-        })
-      : Promise.resolve(null),
+    resolveOrCreateTag("brand", brandName, session.user.id),
+    !isPosm && categoryName ? resolveOrCreateTag("category", categoryName, session.user.id) : Promise.resolve(null),
+    resolveOrCreateTag("shopType", shopTypeName, session.user.id),
+    isPosm && posmTypeName ? resolveOrCreateTag("posmType", posmTypeName, session.user.id) : Promise.resolve(null),
   ]);
 
   const filename = generateFilename(
     {
-      brand: brandName,
+      brand: brand.name,
       isPosm,
-      typeName: isPosm ? (posmTypeName ?? "") : (categoryName ?? ""),
-      shopType: shopTypeName,
+      typeName: isPosm ? (posmType?.name ?? "") : (category?.name ?? ""),
+      shopType: shopType.name,
     },
     capturedAt,
   );
