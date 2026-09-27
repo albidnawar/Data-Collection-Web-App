@@ -21,14 +21,12 @@ export default function CapturePage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [capturedAt, setCapturedAt] = useState<Date | null>(null);
   const [gps, setGps] = useState<{ lat: number; lng: number } | null>(null);
-  const [locatingGps, setLocatingGps] = useState(false);
 
   const [brand, setBrand] = useState<string | null>(null);
   const [isPosm, setIsPosm] = useState(false);
   const [category, setCategory] = useState<string | null>(null);
   const [posmType, setPosmType] = useState<string | null>(null);
   const [shopType, setShopType] = useState<string | null>(null);
-  const [address, setAddress] = useState("");
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [compressing, setCompressing] = useState(false);
 
@@ -48,13 +46,8 @@ export default function CapturePage() {
     setPhoto(file);
     setPreviewUrl(URL.createObjectURL(file));
 
-    setLocatingGps(true);
     void getCurrentPosition().then((result) => {
-      setLocatingGps(false);
-      if (!result) return;
-
-      setGps(result);
-      setAddress((prev) => (prev ? prev : formatRawCoords(result.lat, result.lng)));
+      if (result) setGps(result);
     });
   };
 
@@ -90,7 +83,7 @@ export default function CapturePage() {
       shopType: tagRef(shopType),
       gpsLat: gps?.lat ?? null,
       gpsLng: gps?.lng ?? null,
-      address: address.trim() || null,
+      address: gps ? formatRawCoords(gps.lat, gps.lng) : null,
       capturedAt: capturedAt.toISOString(),
       status: "queued",
       attempts: 0,
@@ -115,8 +108,9 @@ export default function CapturePage() {
     setCategory(null);
     setPosmType(null);
     setIsPosm(false);
-    // Smart defaults: brand, shop type, and address carry forward since reps
-    // usually shoot several photos of the same brand/shop in a row.
+    // Smart defaults: brand and shop type carry forward since reps usually
+    // shoot several photos of the same brand/shop in a row. Location is always
+    // re-detected fresh per photo, never carried over.
   };
 
   const brandOptions = cache ? sortByMostRecentlyUsed("brand", cache.brands) : [];
@@ -203,18 +197,6 @@ export default function CapturePage() {
         onSelect={setShopType}
         onAddNew={(name) => handleAddNewTag("shopType", name)}
       />
-
-      <label className="flex flex-col gap-2">
-        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-          GPS coordinates {locatingGps && "(detecting…)"}
-        </span>
-        <input
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          placeholder="Auto-detected from GPS — tap to edit"
-          className="rounded-xl border border-gray-300 px-4 py-3 text-base focus:border-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900"
-        />
-      </label>
 
       {saveMessage && (
         <p className="text-center text-sm font-medium text-green-600">{saveMessage}</p>
