@@ -7,43 +7,85 @@ function rootFolderId(): string {
   return id;
 }
 
+// Sentinel written into Brand.driveFolderId while one request is in the middle of
+// creating that brand's Drive folder, so a concurrent request for the same
+// never-before-seen brand waits for and reuses that folder instead of racing to
+// create a second one. Never a real Drive file id, so it can't be confused with one.
+const PENDING_FOLDER_MARKER = "__pending__";
+const CLAIM_POLL_INTERVAL_MS = 300;
+const CLAIM_MAX_WAIT_MS = 15000;
+
+async function waitForClaimedFolderId(brandId: string): Promise<string> {
+  const deadline = Date.now() + CLAIM_MAX_WAIT_MS;
+  while (Date.now() < deadline) {
+    const brand = await prisma.brand.findUnique({ where: { id: brandId } });
+    if (brand?.driveFolderId && brand.driveFolderId !== PENDING_FOLDER_MARKER) {
+      return brand.driveFolderId;
+    }
+    await new Promise((resolve) => setTimeout(resolve, CLAIM_POLL_INTERVAL_MS));
+  }
+  throw new Error("Timed out waiting for another upload to finish creating this brand's Drive folder");
+}
+
 export async function resolveOrCreateBrandFolder(brandId: string, brandName: string): Promise<string> {
   const brand = await prisma.brand.findUnique({ where: { id: brandId } });
-  if (brand?.driveFolderId) {
+  if (brand?.driveFolderId && brand.driveFolderId !== PENDING_FOLDER_MARKER) {
     return brand.driveFolderId;
   }
 
-  const drive = getDriveClient();
-  const root = rootFolderId();
-
-  const escapedName = brandName.replace(/'/g, "\\'");
-  const existing = await drive.files.list({
-    q: `mimeType='application/vnd.google-apps.folder' and name='${escapedName}' and '${root}' in parents and trashed=false`,
-    fields: "files(id, name)",
-    spaces: "drive",
+  // Atomically claim the right to create this brand's folder: the WHERE clause makes
+  // this a single conditional UPDATE, so only one concurrent request can ever "win"
+  // when two uploads hit a brand that's never had a folder before.
+  const claim = await prisma.brand.updateMany({
+    where: { id: brandId, driveFolderId: null },
+    data: { driveFolderId: PENDING_FOLDER_MARKER },
   });
 
-  let folderId = existing.data.files?.[0]?.id;
+  if (claim.count === 0) {
+    return waitForClaimedFolderId(brandId);
+  }
 
-  if (!folderId) {
-    const created = await drive.files.create({
-      requestBody: {
-        name: brandName,
-        mimeType: "application/vnd.google-apps.folder",
-        parents: [root],
-      },
-      fields: "id",
+  try {
+    const drive = getDriveClient();
+    const root = rootFolderId();
+
+    const escapedName = brandName.replace(/'/g, "\\'");
+    const existing = await drive.files.list({
+      q: `mimeType='application/vnd.google-apps.folder' and name='${escapedName}' and '${root}' in parents and trashed=false`,
+      fields: "files(id, name)",
+      spaces: "drive",
     });
-    folderId = created.data.id ?? undefined;
+
+    let folderId = existing.data.files?.[0]?.id;
+
+    if (!folderId) {
+      const created = await drive.files.create({
+        requestBody: {
+          name: brandName,
+          mimeType: "application/vnd.google-apps.folder",
+          parents: [root],
+        },
+        fields: "id",
+      });
+      folderId = created.data.id ?? undefined;
+    }
+
+    if (!folderId) {
+      throw new Error(`Failed to resolve or create Drive folder for brand "${brandName}"`);
+    }
+
+    await prisma.brand.update({ where: { id: brandId }, data: { driveFolderId: folderId } });
+
+    return folderId;
+  } catch (error) {
+    // Release the claim so a later retry isn't stuck waiting forever on a folder
+    // that never actually got created.
+    await prisma.brand.updateMany({
+      where: { id: brandId, driveFolderId: PENDING_FOLDER_MARKER },
+      data: { driveFolderId: null },
+    });
+    throw error;
   }
-
-  if (!folderId) {
-    throw new Error(`Failed to resolve or create Drive folder for brand "${brandName}"`);
-  }
-
-  await prisma.brand.update({ where: { id: brandId }, data: { driveFolderId: folderId } });
-
-  return folderId;
 }
 
 export async function uploadPhotoToDrive(params: {

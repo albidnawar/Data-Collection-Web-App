@@ -97,6 +97,7 @@ export default function CapturePage() {
       status: "queued",
       attempts: 0,
       lastError: null,
+      nextRetryAt: null,
     });
 
     recordTagUse("brand", brand);

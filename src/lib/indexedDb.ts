@@ -23,6 +23,7 @@ export interface PendingUpload {
   status: UploadQueueStatus;
   attempts: number;
   lastError: string | null;
+  nextRetryAt: string | null;
 }
 
 export interface TagOption {
