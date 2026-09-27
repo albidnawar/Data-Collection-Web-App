@@ -21,6 +21,7 @@ export default function CapturePage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [capturedAt, setCapturedAt] = useState<Date | null>(null);
   const [gps, setGps] = useState<{ lat: number; lng: number } | null>(null);
+  const [locatingGps, setLocatingGps] = useState(false);
 
   const [brand, setBrand] = useState<string | null>(null);
   const [isPosm, setIsPosm] = useState(false);
@@ -46,8 +47,10 @@ export default function CapturePage() {
     setPhoto(file);
     setPreviewUrl(URL.createObjectURL(file));
 
+    setLocatingGps(true);
     void getCurrentPosition().then((result) => {
       if (result) setGps(result);
+      setLocatingGps(false);
     });
   };
 
@@ -64,6 +67,7 @@ export default function CapturePage() {
 
   const canSave =
     photo !== null &&
+    !locatingGps &&
     brand !== null &&
     shopType !== null &&
     (isPosm ? posmType !== null : category !== null);
@@ -208,7 +212,7 @@ export default function CapturePage() {
         onClick={handleSave}
         className="rounded-2xl bg-green-600 py-4 text-lg font-semibold text-white disabled:opacity-40"
       >
-        Save &amp; Next Photo
+        {locatingGps ? "Locating…" : "Save & Next Photo"}
       </button>
     </div>
   );
