@@ -94,12 +94,15 @@ export async function renameTagAction(
 
   if (type === "brand") {
     const brand = await prisma.brand.findUnique({ where: { id } });
-    if (brand?.driveFolderId) {
-      try {
-        const drive = getDriveClient();
-        await drive.files.update({ fileId: brand.driveFolderId, requestBody: { name: trimmed } });
-      } catch {
-        // Drive folder rename failed (e.g. folder deleted upstream) — DB rename still stands.
+    const folderIds = [brand?.driveFolderId, brand?.badExecutionDriveFolderId].filter((v): v is string => !!v);
+    if (folderIds.length > 0) {
+      const drive = getDriveClient();
+      for (const folderId of folderIds) {
+        try {
+          await drive.files.update({ fileId: folderId, requestBody: { name: trimmed } });
+        } catch {
+          // Drive folder rename failed (e.g. folder deleted upstream) — DB rename still stands.
+        }
       }
     }
   }

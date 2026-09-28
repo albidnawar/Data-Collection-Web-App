@@ -20,6 +20,8 @@ export default async function AdminOverviewPage() {
     activeRepsCount,
     topBrandsRaw,
     topShopTypesRaw,
+    badExecutionTopBrandsRaw,
+    brandKindCountsRaw,
     dailyRaw,
     failedRecent,
   ] = await Promise.all([
@@ -42,6 +44,18 @@ export default async function AdminOverviewPage() {
       orderBy: { _count: { shopTypeId: "desc" } },
       take: 5,
     }),
+    prisma.photoRecord.groupBy({
+      by: ["brandId"],
+      where: { status: "uploaded", isGoodExecution: false },
+      _count: { _all: true },
+      orderBy: { _count: { brandId: "desc" } },
+      take: 5,
+    }),
+    prisma.photoRecord.groupBy({
+      by: ["brandId", "isPosm"],
+      where: { status: "uploaded" },
+      _count: { _all: true },
+    }),
     prisma.$queryRaw<Array<{ day: Date; count: bigint }>>`
       SELECT date_trunc('day', "uploadedAt") AS day, COUNT(*)::bigint AS count
       FROM "PhotoRecord"
@@ -58,7 +72,19 @@ export default async function AdminOverviewPage() {
   ]);
 
   const [brands, shopTypes] = await Promise.all([
-    prisma.brand.findMany({ where: { id: { in: topBrandsRaw.map((b) => b.brandId) } } }),
+    prisma.brand.findMany({
+      where: {
+        id: {
+          in: [
+            ...new Set([
+              ...topBrandsRaw.map((b) => b.brandId),
+              ...badExecutionTopBrandsRaw.map((b) => b.brandId),
+              ...brandKindCountsRaw.map((b) => b.brandId),
+            ]),
+          ],
+        },
+      },
+    }),
     prisma.shopType.findMany({ where: { id: { in: topShopTypesRaw.map((s) => s.shopTypeId) } } }),
   ]);
 
@@ -70,6 +96,20 @@ export default async function AdminOverviewPage() {
     name: shopTypes.find((st) => st.id === s.shopTypeId)?.name ?? "Unknown",
     count: s._count._all,
   }));
+  const badExecutionTopBrands = badExecutionTopBrandsRaw.map((b) => ({
+    name: brands.find((br) => br.id === b.brandId)?.name ?? "Unknown",
+    count: b._count._all,
+  }));
+
+  const brandKindMap = new Map<string, { name: string; posm: number; category: number }>();
+  for (const row of brandKindCountsRaw) {
+    const name = brands.find((br) => br.id === row.brandId)?.name ?? "Unknown";
+    const entry = brandKindMap.get(row.brandId) ?? { name, posm: 0, category: 0 };
+    if (row.isPosm) entry.posm += row._count._all;
+    else entry.category += row._count._all;
+    brandKindMap.set(row.brandId, entry);
+  }
+  const brandKindCounts = [...brandKindMap.values()].sort((a, b) => b.posm + b.category - (a.posm + a.category));
 
   const dailyMap = new Map(dailyRaw.map((d) => [d.day.toISOString().slice(0, 10), Number(d.count)]));
   const chartData: UploadsChartPoint[] = Array.from({ length: 14 }, (_, i) => {
@@ -115,6 +155,55 @@ export default async function AdminOverviewPage() {
               </li>
             ))}
           </ul>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Top brands — bad executions</h2>
+            <Link href="/admin/photos?executionQuality=bad" className="text-sm font-medium text-blue-600">
+              View all
+            </Link>
+          </div>
+          <ul className="flex flex-col gap-2">
+            {badExecutionTopBrands.length === 0 && <li className="text-sm text-gray-500">No bad executions logged.</li>}
+            {badExecutionTopBrands.map((b) => (
+              <li key={b.name} className="flex justify-between text-sm">
+                <span className="text-gray-700 dark:text-gray-300">{b.name}</span>
+                <span className="font-medium text-red-600">{b.count}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+          <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Brand-wise POSM / Category Shelf Display</h2>
+          <div className="max-h-64 overflow-y-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="text-xs uppercase text-gray-500">
+                <tr>
+                  <th className="py-1 pr-2">Brand</th>
+                  <th className="py-1 pr-2 text-right">POSM</th>
+                  <th className="py-1 text-right">Category</th>
+                </tr>
+              </thead>
+              <tbody>
+                {brandKindCounts.length === 0 && (
+                  <tr>
+                    <td colSpan={3} className="py-2 text-sm text-gray-500">No uploads yet.</td>
+                  </tr>
+                )}
+                {brandKindCounts.map((b) => (
+                  <tr key={b.name} className="border-t border-gray-100 dark:border-gray-800">
+                    <td className="py-1 pr-2 text-gray-700 dark:text-gray-300">{b.name}</td>
+                    <td className="py-1 pr-2 text-right font-medium text-gray-900 dark:text-gray-100">{b.posm}</td>
+                    <td className="py-1 text-right font-medium text-gray-900 dark:text-gray-100">{b.category}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 

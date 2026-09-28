@@ -35,10 +35,11 @@ model Rep {
 }
 
 model Brand {
-  id            String   @id @default(uuid())
-  name          String   @unique
-  driveFolderId String?
-  active        Boolean  @default(true)
+  id                        String   @id @default(uuid())
+  name                      String   @unique
+  driveFolderId             String?
+  badExecutionDriveFolderId String?
+  active                    Boolean  @default(true)
   createdAt     DateTime @default(now())
   createdById   String?
   createdBy     Rep?     @relation("BrandCreatedBy", fields: [createdById], references: [id])
@@ -91,6 +92,8 @@ model PhotoRecord {
 
   isPosm Boolean
 
+  isGoodExecution Boolean @default(true)
+
   categoryId String?
   category   Category? @relation(fields: [categoryId], references: [id])
 
@@ -124,6 +127,7 @@ model PhotoRecord {
   @@index([status])
   @@index([capturedAt])
   @@index([filenameSyncPending])
+  @@index([isGoodExecution])
 }
 
 // One row per rep per day. dateKey is a "YYYY-MM-DD" string computed in the

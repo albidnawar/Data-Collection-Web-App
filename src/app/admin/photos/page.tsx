@@ -18,6 +18,7 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
     shopTypeId: get("shopTypeId"),
     isPosm: get("isPosm"),
     status: get("status"),
+    executionQuality: get("executionQuality"),
   };
   const page = Math.max(1, Number(get("page") ?? "1") || 1);
 
@@ -112,6 +113,14 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
             <option value="failed">Failed</option>
           </select>
         </label>
+        <label className="flex flex-col gap-1 text-xs text-gray-500">
+          Execution
+          <select name="executionQuality" defaultValue={filters.executionQuality ?? ""} className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800">
+            <option value="">All</option>
+            <option value="good">Good</option>
+            <option value="bad">Bad</option>
+          </select>
+        </label>
         <button type="submit" className="self-end rounded-lg bg-gray-900 px-4 py-1.5 text-sm font-medium text-white dark:bg-gray-100 dark:text-gray-900">
           Filter
         </button>
@@ -127,6 +136,7 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
               <th className="px-3 py-2">Kind</th>
               <th className="px-3 py-2">Type</th>
               <th className="px-3 py-2">Shop type</th>
+              <th className="px-3 py-2">Execution</th>
               <th className="px-3 py-2">Location</th>
               <th className="px-3 py-2">Status</th>
               <th className="px-3 py-2">Drive</th>
@@ -144,6 +154,11 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
                 <td className="px-3 py-2">{r.isPosm ? "POSM" : "Category Shelf Display"}</td>
                 <td className="px-3 py-2">{r.isPosm ? (r.posmType?.name ?? "—") : (r.category?.name ?? "—")}</td>
                 <td className="px-3 py-2">{r.shopType.name}</td>
+                <td className="px-3 py-2">
+                  <span className={r.isGoodExecution ? "text-green-600" : "text-red-600"}>
+                    {r.isGoodExecution ? "Good" : "Bad"}
+                  </span>
+                </td>
                 <td className="px-3 py-2">{r.address ?? "—"}</td>
                 <td className="px-3 py-2">
                   <span
@@ -174,7 +189,7 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
             ))}
             {records.length === 0 && (
               <tr>
-                <td colSpan={10} className="px-3 py-6 text-center text-gray-500">
+                <td colSpan={11} className="px-3 py-6 text-center text-gray-500">
                   No photos match these filters.
                 </td>
               </tr>

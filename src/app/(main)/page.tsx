@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Camera } from "lucide-react";
 import { ChipGroup } from "@/components/ChipGroup";
+import { ExecutionQualityToggle } from "@/components/ExecutionQualityToggle";
 import { TagKindToggle } from "@/components/TagKindToggle";
 import { useTagCache } from "@/hooks/useTagCache";
 import { notifyQueueChanged } from "@/hooks/usePendingQueue";
@@ -28,6 +29,7 @@ export default function CapturePage() {
 
   const [brand, setBrand] = useState<string | null>(null);
   const [isPosm, setIsPosm] = useState(false);
+  const [isGoodExecution, setIsGoodExecution] = useState<boolean | null>(null);
   const [category, setCategory] = useState<string | null>(null);
   const [posmType, setPosmType] = useState<string | null>(null);
   const [shopType, setShopType] = useState<string | null>(null);
@@ -83,10 +85,11 @@ export default function CapturePage() {
     !locatingGps &&
     brand !== null &&
     shopType !== null &&
+    isGoodExecution !== null &&
     (isPosm ? posmType !== null : category !== null);
 
   const handleSave = async () => {
-    if (!canSave || !photo || !capturedAt || !brand || !shopType) return;
+    if (!canSave || !photo || !capturedAt || !brand || !shopType || isGoodExecution === null) return;
 
     const tagRef = (name: string): TagRef => ({ id: null, name });
 
@@ -95,6 +98,7 @@ export default function CapturePage() {
       photoBlob: photo,
       brand: tagRef(brand),
       isPosm,
+      isGoodExecution,
       category: !isPosm && category ? tagRef(category) : null,
       posmType: isPosm && posmType ? tagRef(posmType) : null,
       shopType: tagRef(shopType),
@@ -125,9 +129,11 @@ export default function CapturePage() {
     setCategory(null);
     setPosmType(null);
     setIsPosm(false);
+    setIsGoodExecution(null);
     // Smart defaults: brand and shop type carry forward since reps usually
     // shoot several photos of the same brand/shop in a row. Location is always
-    // re-detected fresh per photo, never carried over.
+    // re-detected fresh per photo, never carried over. Execution quality is
+    // also never carried over — it needs a conscious choice every time.
   };
 
   const brandOptions = cache ? sortByMostRecentlyUsed("brand", cache.brands) : [];
@@ -207,6 +213,8 @@ export default function CapturePage() {
         onSelect={setBrand}
         onAddNew={(name) => handleAddNewTag("brand", name)}
       />
+
+      <ExecutionQualityToggle isGoodExecution={isGoodExecution} onChange={setIsGoodExecution} />
 
       <TagKindToggle isPosm={isPosm} onChange={setIsPosm} />
 

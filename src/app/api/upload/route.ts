@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { generateFilename } from "@/lib/filename";
-import { resolveOrCreateBrandFolder, uploadPhotoToDrive } from "@/lib/driveFolders";
+import { resolveOrCreateBadExecutionBrandFolder, resolveOrCreateBrandFolder, uploadPhotoToDrive } from "@/lib/driveFolders";
 import { resolveOrCreateTag } from "@/lib/tagResolve";
 
 export const maxDuration = 60;
@@ -26,6 +26,7 @@ export async function POST(request: Request) {
   const shopTypeName = requireString(formData, "shopTypeName");
   const capturedAtRaw = requireString(formData, "capturedAt");
   const isPosm = formData.get("isPosm") === "true";
+  const isGoodExecutionRaw = requireString(formData, "isGoodExecution");
   const posmTypeName = requireString(formData, "posmTypeName");
   const gpsLatRaw = formData.get("gpsLat");
   const gpsLngRaw = formData.get("gpsLng");
@@ -39,11 +40,13 @@ export async function POST(request: Request) {
     !capturedAtRaw ||
     !(photo instanceof File) ||
     (isPosm && !posmTypeName) ||
-    (!isPosm && !categoryName)
+    (!isPosm && !categoryName) ||
+    (isGoodExecutionRaw !== "true" && isGoodExecutionRaw !== "false")
   ) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
+  const isGoodExecution = isGoodExecutionRaw === "true";
   const capturedAt = new Date(capturedAtRaw);
 
   const existing = await prisma.photoRecord.findUnique({ where: { clientQueueId } });
@@ -82,6 +85,7 @@ export async function POST(request: Request) {
       repId: session.user.id,
       brandId: brand.id,
       isPosm,
+      isGoodExecution,
       categoryId: category?.id ?? null,
       posmTypeId: posmType?.id ?? null,
       shopTypeId: shopType.id,
@@ -95,7 +99,9 @@ export async function POST(request: Request) {
   });
 
   try {
-    const folderId = await resolveOrCreateBrandFolder(brand.id, brand.name);
+    const folderId = isGoodExecution
+      ? await resolveOrCreateBrandFolder(brand.id, brand.name)
+      : await resolveOrCreateBadExecutionBrandFolder(brand.id, brand.name);
     const fileBuffer = Buffer.from(await photo.arrayBuffer());
     const { fileId, fileUrl } = await uploadPhotoToDrive({ folderId, filename, fileBuffer });
 

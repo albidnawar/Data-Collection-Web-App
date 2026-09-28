@@ -8,6 +8,7 @@ export interface PhotoFilterParams {
   shopTypeId?: string;
   isPosm?: string;
   status?: string;
+  executionQuality?: string;
 }
 
 export function buildPhotoWhere(params: PhotoFilterParams): Prisma.PhotoRecordWhereInput {
@@ -26,6 +27,8 @@ export function buildPhotoWhere(params: PhotoFilterParams): Prisma.PhotoRecordWh
   if (params.status && ["pending", "uploading", "uploaded", "failed"].includes(params.status)) {
     where.status = params.status as Prisma.EnumUploadStatusFilter["equals"];
   }
+  if (params.executionQuality === "good") where.isGoodExecution = true;
+  if (params.executionQuality === "bad") where.isGoodExecution = false;
 
   return where;
 }

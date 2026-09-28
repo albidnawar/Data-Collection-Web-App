@@ -1,5 +1,10 @@
 import { prisma } from "@/lib/db";
-import { deleteDriveFolderIfEmpty, renameAndRefileDriveFile, resolveOrCreateBrandFolder } from "@/lib/driveFolders";
+import {
+  deleteDriveFolderIfEmpty,
+  renameAndRefileDriveFile,
+  resolveOrCreateBadExecutionBrandFolder,
+  resolveOrCreateBrandFolder,
+} from "@/lib/driveFolders";
 
 const BATCH_SIZE = 25;
 
@@ -15,7 +20,9 @@ export async function runFilenameSyncBatch(): Promise<{ processed: number; faile
 
   for (const record of batch) {
     try {
-      const folderId = await resolveOrCreateBrandFolder(record.brandId, record.brand.name);
+      const folderId = record.isGoodExecution
+        ? await resolveOrCreateBrandFolder(record.brandId, record.brand.name)
+        : await resolveOrCreateBadExecutionBrandFolder(record.brandId, record.brand.name);
       const { removedParentIds } = await renameAndRefileDriveFile({
         fileId: record.driveFileId as string,
         newName: record.filename,

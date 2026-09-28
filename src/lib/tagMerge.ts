@@ -128,11 +128,15 @@ export async function deleteTagAndAllPhotos(type: TagType, id: string): Promise<
   await prisma.photoRecord.deleteMany({ where: whereForType(type, id) });
 
   if (type === "brand") {
-    // The brand row (and its Drive folder id) is about to be deleted — grab the
-    // folder id first so the now-empty folder can still be cleaned up after.
-    const brand = await prisma.brand.findUnique({ where: { id }, select: { driveFolderId: true } });
+    // The brand row (and its Drive folder ids) is about to be deleted — grab
+    // them first so the now-empty folders can still be cleaned up after.
+    const brand = await prisma.brand.findUnique({
+      where: { id },
+      select: { driveFolderId: true, badExecutionDriveFolderId: true },
+    });
     await deleteTagRow(type, id);
     await deleteDriveFolderIfEmpty(brand?.driveFolderId);
+    await deleteDriveFolderIfEmpty(brand?.badExecutionDriveFolderId);
   } else {
     await deleteTagRow(type, id);
     const affectedBrandIds = [...new Set(affected.map((r) => r.brandId))];

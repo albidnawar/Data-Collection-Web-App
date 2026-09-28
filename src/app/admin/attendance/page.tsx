@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { buildAttendanceWhere } from "@/lib/adminAttendanceFilters";
 import { LocalDateTime } from "@/components/admin/LocalDateTime";
+import { DeleteAttendanceButton } from "@/components/admin/DeleteAttendanceButton";
 
 const PAGE_SIZE = 50;
 
@@ -86,6 +87,7 @@ export default async function AdminAttendancePage(props: PageProps<"/admin/atten
               <th className="px-3 py-2">Clock out</th>
               <th className="px-3 py-2">Clock-out location</th>
               <th className="px-3 py-2">Selfie</th>
+              <th className="px-3 py-2">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -119,11 +121,14 @@ export default async function AdminAttendancePage(props: PageProps<"/admin/atten
                     "—"
                   )}
                 </td>
+                <td className="px-3 py-2">
+                  <DeleteAttendanceButton id={r.id} />
+                </td>
               </tr>
             ))}
             {records.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-3 py-6 text-center text-gray-500">
+                <td colSpan={9} className="px-3 py-6 text-center text-gray-500">
                   No attendance records match these filters.
                 </td>
               </tr>
