@@ -24,5 +24,5 @@ export default auth(function proxy(req) {
 });
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|manifest.json|icons|sw.js).*)"],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|manifest.json|icons|sw.js|logo-blue.png|logo-white.png).*)"],
 };
