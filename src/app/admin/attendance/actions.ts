@@ -10,22 +10,35 @@ async function requireAdmin() {
   if (!session?.user?.isAdmin) throw new Error("Forbidden");
 }
 
-export async function deleteAttendanceAction(id: string) {
+export async function deleteAttendanceAction(id: string): Promise<{ error: string | null }> {
   await requireAdmin();
 
   const record = await prisma.attendance.findUnique({ where: { id } });
-  if (!record) return;
+  if (!record) return { error: null };
 
-  for (const driveFileId of [record.clockInDriveFileId, record.clockOutDriveFileId]) {
+  const failedLabels: string[] = [];
+
+  for (const [label, driveFileId] of [
+    ["clock-in", record.clockInDriveFileId],
+    ["clock-out", record.clockOutDriveFileId],
+  ] as const) {
     if (!driveFileId) continue;
     try {
       await deleteDriveFile(driveFileId);
-    } catch {
-      // Drive file already gone or inaccessible — still remove the DB record.
+    } catch (error) {
+      console.error(`deleteAttendanceAction: failed to delete ${label} selfie (fileId=${driveFileId}) for attendance ${id}:`, error);
+      failedLabels.push(label);
     }
   }
 
   await prisma.attendance.delete({ where: { id } });
 
   revalidatePath("/admin/attendance");
+
+  if (failedLabels.length > 0) {
+    return {
+      error: `Record deleted, but the ${failedLabels.join(" and ")} selfie couldn't be removed from Drive — check server logs.`,
+    };
+  }
+  return { error: null };
 }
