@@ -88,6 +88,46 @@ export async function resolveOrCreateBrandFolder(brandId: string, brandName: str
   }
 }
 
+const ATTENDANCE_FOLDER_NAME = "Attendance";
+// Warm-instance-only cache: harmless to re-resolve on a cold start, and this
+// folder is only ever created once (the first clock-in/out after this
+// shipped), so the brand-folder claim dance above isn't needed here.
+let attendanceFolderIdCache: string | null = null;
+
+export async function resolveOrCreateAttendanceFolder(): Promise<string> {
+  if (attendanceFolderIdCache) return attendanceFolderIdCache;
+
+  const drive = getDriveClient();
+  const root = rootFolderId();
+
+  const existing = await drive.files.list({
+    q: `mimeType='application/vnd.google-apps.folder' and name='${ATTENDANCE_FOLDER_NAME}' and '${root}' in parents and trashed=false`,
+    fields: "files(id, name)",
+    spaces: "drive",
+  });
+
+  let folderId = existing.data.files?.[0]?.id;
+
+  if (!folderId) {
+    const created = await drive.files.create({
+      requestBody: {
+        name: ATTENDANCE_FOLDER_NAME,
+        mimeType: "application/vnd.google-apps.folder",
+        parents: [root],
+      },
+      fields: "id",
+    });
+    folderId = created.data.id ?? undefined;
+  }
+
+  if (!folderId) {
+    throw new Error("Failed to resolve or create the Attendance Drive folder");
+  }
+
+  attendanceFolderIdCache = folderId;
+  return folderId;
+}
+
 export async function uploadPhotoToDrive(params: {
   folderId: string;
   filename: string;

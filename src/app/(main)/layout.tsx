@@ -1,11 +1,18 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { getTodayAttendance } from "@/lib/attendance";
 import { QueueBadge } from "@/components/QueueBadge";
 import { SyncManager } from "@/components/SyncManager";
 import { logoutAction } from "./actions";
 
 export default async function MainLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
+  const attendance = session?.user ? await getTodayAttendance(session.user.id) : null;
+
+  if (session?.user && !attendance) {
+    redirect("/attendance");
+  }
 
   return (
     <div className="flex min-h-dvh flex-col bg-gray-50 dark:bg-gray-950">
@@ -18,6 +25,11 @@ export default async function MainLayout({ children }: { children: React.ReactNo
         </Link>
         <div className="flex items-center gap-3">
           <QueueBadge />
+          {attendance && !attendance.clockOutAt && (
+            <Link href="/attendance" className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              End Day
+            </Link>
+          )}
           {session?.user?.isAdmin && (
             <Link
               href="/admin"

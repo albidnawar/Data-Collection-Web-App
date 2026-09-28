@@ -31,6 +31,7 @@ model Rep {
   createdPosmTypes   PosmType[]    @relation("PosmTypeCreatedBy")
   createdShopTypes   ShopType[]    @relation("ShopTypeCreatedBy")
   photoRecords       PhotoRecord[]
+  attendances        Attendance[]
 }
 
 model Brand {
@@ -123,4 +124,33 @@ model PhotoRecord {
   @@index([status])
   @@index([capturedAt])
   @@index([filenameSyncPending])
+}
+
+// One row per rep per day. dateKey is a "YYYY-MM-DD" string computed in the
+// reps' local (Asia/Dhaka) time, so the day boundary lands at their actual
+// midnight rather than server UTC midnight.
+model Attendance {
+  id      String @id @default(uuid())
+  repId   String
+  rep     Rep    @relation(fields: [repId], references: [id])
+  dateKey String
+
+  clockInAt          DateTime
+  clockInLat         Float?
+  clockInLng         Float?
+  clockInAddress     String?
+  clockInDriveFileId String?
+  clockInPhotoUrl    String?
+
+  clockOutAt          DateTime?
+  clockOutLat         Float?
+  clockOutLng         Float?
+  clockOutAddress     String?
+  clockOutDriveFileId String?
+  clockOutPhotoUrl    String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([repId, dateKey])
+  @@index([dateKey])
 }
