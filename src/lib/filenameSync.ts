@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { renameAndRefileDriveFile, resolveOrCreateBrandFolder } from "@/lib/driveFolders";
+import { deleteDriveFolderIfEmpty, renameAndRefileDriveFile, resolveOrCreateBrandFolder } from "@/lib/driveFolders";
 
 const BATCH_SIZE = 25;
 
@@ -16,7 +16,7 @@ export async function runFilenameSyncBatch(): Promise<{ processed: number; faile
   for (const record of batch) {
     try {
       const folderId = await resolveOrCreateBrandFolder(record.brandId, record.brand.name);
-      await renameAndRefileDriveFile({
+      const { removedParentIds } = await renameAndRefileDriveFile({
         fileId: record.driveFileId as string,
         newName: record.filename,
         targetFolderId: folderId,
@@ -25,6 +25,11 @@ export async function runFilenameSyncBatch(): Promise<{ processed: number; faile
         where: { id: record.id },
         data: { filenameSyncPending: false },
       });
+      // The photo just moved out of its old brand's folder (e.g. after a brand
+      // merge) — clean that folder up now if nothing else is left in it.
+      for (const oldFolderId of removedParentIds) {
+        await deleteDriveFolderIfEmpty(oldFolderId);
+      }
       processed += 1;
     } catch {
       failed += 1;

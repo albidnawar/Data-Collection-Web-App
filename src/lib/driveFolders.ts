@@ -127,16 +127,54 @@ export async function renameAndRefileDriveFile(params: {
   fileId: string;
   newName: string;
   targetFolderId: string;
-}): Promise<void> {
+}): Promise<{ removedParentIds: string[] }> {
   const drive = getDriveClient();
 
   const current = await drive.files.get({ fileId: params.fileId, fields: "parents" });
   const currentParents = current.data.parents ?? [];
+  const removedParentIds = currentParents.filter((p) => p !== params.targetFolderId);
 
   await drive.files.update({
     fileId: params.fileId,
     requestBody: { name: params.newName },
     addParents: currentParents.includes(params.targetFolderId) ? undefined : params.targetFolderId,
-    removeParents: currentParents.filter((p) => p !== params.targetFolderId).join(",") || undefined,
+    removeParents: removedParentIds.join(",") || undefined,
   });
+
+  return { removedParentIds };
+}
+
+function isRealFolderId(id: string | null | undefined): id is string {
+  return !!id && id !== PENDING_FOLDER_MARKER;
+}
+
+/** Deletes a brand's Drive folder once it has no photos left in it — and clears
+ * the DB's reference to it, so the next upload for that brand creates a fresh one. */
+export async function deleteDriveFolderIfEmpty(folderId: string | null | undefined): Promise<void> {
+  if (!isRealFolderId(folderId)) return;
+
+  try {
+    const drive = getDriveClient();
+    const remaining = await drive.files.list({
+      q: `'${folderId}' in parents and trashed=false`,
+      fields: "files(id)",
+      pageSize: 1,
+      spaces: "drive",
+    });
+    if ((remaining.data.files?.length ?? 0) > 0) return;
+
+    await drive.files.delete({ fileId: folderId });
+    await prisma.brand.updateMany({ where: { driveFolderId: folderId }, data: { driveFolderId: null } });
+  } catch {
+    // Folder already gone, inaccessible, or a race re-populated it — safe to leave alone.
+  }
+}
+
+/** Checks whether a brand has any photos left, and if not, cleans up its now-empty Drive folder. */
+export async function cleanupEmptyBrandFolder(brandId: string): Promise<void> {
+  const remaining = await prisma.photoRecord.count({ where: { brandId } });
+  if (remaining > 0) return;
+
+  const brand = await prisma.brand.findUnique({ where: { id: brandId }, select: { driveFolderId: true } });
+  await deleteDriveFolderIfEmpty(brand?.driveFolderId);
 }

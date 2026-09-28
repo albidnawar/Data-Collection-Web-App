@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { generateFilename } from "@/lib/filename";
-import { deleteDriveFile } from "@/lib/driveFolders";
+import { cleanupEmptyBrandFolder, deleteDriveFile, deleteDriveFolderIfEmpty } from "@/lib/driveFolders";
 import type { TagType } from "@/lib/tagTypes";
 import type { Prisma } from "@/generated/prisma/client";
 
@@ -112,7 +112,7 @@ export async function mergeAndDeleteTag(
 export async function deleteTagAndAllPhotos(type: TagType, id: string): Promise<void> {
   const affected = await prisma.photoRecord.findMany({
     where: whereForType(type, id),
-    select: { id: true, driveFileId: true },
+    select: { id: true, driveFileId: true, brandId: true },
   });
 
   for (const record of affected) {
@@ -126,5 +126,18 @@ export async function deleteTagAndAllPhotos(type: TagType, id: string): Promise<
   }
 
   await prisma.photoRecord.deleteMany({ where: whereForType(type, id) });
-  await deleteTagRow(type, id);
+
+  if (type === "brand") {
+    // The brand row (and its Drive folder id) is about to be deleted — grab the
+    // folder id first so the now-empty folder can still be cleaned up after.
+    const brand = await prisma.brand.findUnique({ where: { id }, select: { driveFolderId: true } });
+    await deleteTagRow(type, id);
+    await deleteDriveFolderIfEmpty(brand?.driveFolderId);
+  } else {
+    await deleteTagRow(type, id);
+    const affectedBrandIds = [...new Set(affected.map((r) => r.brandId))];
+    for (const brandId of affectedBrandIds) {
+      await cleanupEmptyBrandFolder(brandId);
+    }
+  }
 }

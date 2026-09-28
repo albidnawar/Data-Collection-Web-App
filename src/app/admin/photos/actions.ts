@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { deleteDriveFile } from "@/lib/driveFolders";
+import { cleanupEmptyBrandFolder, deleteDriveFile } from "@/lib/driveFolders";
 
 async function requireAdmin() {
   const session = await auth();
@@ -25,6 +25,7 @@ export async function deletePhotoAction(id: string) {
   }
 
   await prisma.photoRecord.delete({ where: { id } });
+  await cleanupEmptyBrandFolder(record.brandId);
 
   revalidatePath("/admin/photos");
   revalidatePath("/admin");
