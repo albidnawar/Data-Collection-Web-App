@@ -9,9 +9,10 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center bg-gray-50 px-4 dark:bg-gray-950">
       <div className="w-full max-w-sm">
-        <h1 className="mb-8 text-center text-2xl font-semibold text-gray-900 dark:text-gray-100">
-          Fieldlenz
-        </h1>
+        <div className="mb-8 text-center">
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">CamTag</h1>
+          <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">made by Albid Nawar</p>
+        </div>
 
         <form action={formAction} className="flex flex-col gap-4">
           <input

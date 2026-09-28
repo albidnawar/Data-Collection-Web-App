@@ -1,3 +1,4 @@
+import { CheckCircle2 } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { StatCard } from "@/components/admin/StatCard";
 import { UploadsChart, type UploadsChartPoint } from "@/components/admin/UploadsChart";
@@ -125,7 +126,10 @@ export default async function AdminOverviewPage() {
           </Link>
         </div>
         {failedRecent.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400">No failed uploads. 🎉</p>
+          <p className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
+            <CheckCircle2 className="size-4 text-green-600" strokeWidth={1.75} />
+            No failed uploads.
+          </p>
         ) : (
           <ul className="flex flex-col gap-2">
             {failedRecent.map((f) => (

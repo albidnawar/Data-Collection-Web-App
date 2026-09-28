@@ -14,13 +14,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Fieldlenz",
+  title: "CamTag",
   description: "Capture and tag in-store photos for upload to Google Drive.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Fieldlenz",
+    title: "CamTag",
   },
   icons: {
     icon: "/icons/icon-192.png",

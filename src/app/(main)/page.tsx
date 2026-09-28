@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Camera } from "lucide-react";
 import { ChipGroup } from "@/components/ChipGroup";
 import { TagKindToggle } from "@/components/TagKindToggle";
 import { useTagCache } from "@/hooks/useTagCache";
@@ -168,7 +169,7 @@ export default function CapturePage() {
 
       {compressing ? (
         <div className="flex aspect-[4/3] max-h-[45vh] w-full flex-col items-center justify-center gap-2 rounded-2xl bg-blue-600 text-white">
-          <span className="text-2xl">📷</span>
+          <Camera className="size-8" strokeWidth={1.75} />
           <span className="text-lg font-semibold">Processing photo…</span>
         </div>
       ) : previewUrl ? (
@@ -184,7 +185,7 @@ export default function CapturePage() {
           onClick={handleTakePhoto}
           className="flex aspect-[4/3] max-h-[45vh] w-full flex-col items-center justify-center gap-2 rounded-2xl bg-blue-600 text-white active:bg-blue-700"
         >
-          <span className="text-2xl">📷</span>
+          <Camera className="size-8" strokeWidth={1.75} />
           <span className="text-lg font-semibold">Take Photo</span>
         </button>
       )}
