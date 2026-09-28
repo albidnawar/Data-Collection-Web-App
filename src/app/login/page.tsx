@@ -9,7 +9,9 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center bg-gray-50 px-4 dark:bg-gray-950">
       <div className="w-full max-w-sm">
-        <div className="mb-8 text-center">
+        <div className="mb-8 flex flex-col items-center text-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-blue.png" alt="" className="mb-2 h-14 w-14" />
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">CamTag</h1>
           <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">made by Albid Nawar</p>
         </div>

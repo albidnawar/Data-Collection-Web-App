@@ -20,7 +20,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="flex min-h-dvh flex-col bg-gray-50 dark:bg-gray-950">
       <AutoRefresh />
       <header className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 dark:border-gray-800 dark:bg-gray-900">
-        <Link href="/" className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+        <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-blue.png" alt="" className="h-6 w-6" />
           CamTag Admin
         </Link>
         <div className="flex items-center gap-4">
