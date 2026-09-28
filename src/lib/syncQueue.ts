@@ -22,6 +22,9 @@ function buildFormData(upload: PendingUpload): FormData {
   if (upload.category) formData.set("categoryName", upload.category.name);
   if (upload.posmType) formData.set("posmTypeName", upload.posmType.name);
   formData.set("shopTypeName", upload.shopType.name);
+  if (upload.gpsLat !== null) formData.set("gpsLat", String(upload.gpsLat));
+  if (upload.gpsLng !== null) formData.set("gpsLng", String(upload.gpsLng));
+  if (upload.address) formData.set("address", upload.address);
   formData.set("capturedAt", upload.capturedAt);
   formData.set("photo", upload.photoBlob, "photo.jpg");
   return formData;
