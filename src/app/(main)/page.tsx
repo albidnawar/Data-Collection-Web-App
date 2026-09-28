@@ -7,6 +7,7 @@ import { ExecutionQualityToggle } from "@/components/ExecutionQualityToggle";
 import { TagKindToggle } from "@/components/TagKindToggle";
 import { useTagCache } from "@/hooks/useTagCache";
 import { notifyQueueChanged } from "@/hooks/usePendingQueue";
+import { requestCameraPermission } from "@/lib/camera";
 import { getCurrentPositionDetailed, getLocationHelp } from "@/lib/geolocation";
 import { formatRawCoords } from "@/lib/geocoding";
 import { compressImageIfNeeded } from "@/lib/imageCompression";
@@ -46,15 +47,17 @@ export default function CapturePage() {
     return outcome;
   };
 
-  // Ask for location right away, on the first screen the rep sees — so the native
-  // "Allow location?" prompt shows up immediately instead of only after they've
-  // already taken a photo (and is easy to find if they need to fix it manually).
-  // Geolocation is a client-only browser API that can only run post-mount, and its
-  // result can only be known asynchronously — there's no way to derive this from
-  // props/state during render, so updating state once it resolves is unavoidable.
+  // Ask for location and camera access right away, on the first screen the rep
+  // sees — so both native permission prompts show up immediately instead of
+  // only after they've already tried to take a photo (and location is easy to
+  // find if they need to fix it manually). Geolocation is a client-only browser
+  // API that can only run post-mount, and its result can only be known
+  // asynchronously — there's no way to derive this from props/state during
+  // render, so updating state once it resolves is unavoidable.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void requestLocation();
+    void requestCameraPermission("environment");
   }, []);
 
   const handleTakePhoto = () => fileInputRef.current?.click();

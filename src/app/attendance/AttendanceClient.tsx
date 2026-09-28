@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Camera, CheckCircle2 } from "lucide-react";
+import { requestCameraPermission } from "@/lib/camera";
 import { compressImageIfNeeded } from "@/lib/imageCompression";
 import { getCurrentPositionDetailed, getLocationHelp } from "@/lib/geolocation";
 import { formatRawCoords } from "@/lib/geocoding";
@@ -63,6 +64,7 @@ export function AttendanceClient({
     // result can only be known post-mount, so this state update is unavoidable.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void requestLocation();
+    void requestCameraPermission("user");
   }, [mode]);
 
   const handleTakeSelfie = () => fileInputRef.current?.click();
