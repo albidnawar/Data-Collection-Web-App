@@ -99,7 +99,7 @@ export function ChipGroup({ label, options, selected, onSelect, onAddNew }: Chip
 
       {adding && exact && (
         <span className="text-xs text-gray-500 dark:text-gray-400">
-          Matches existing &ldquo;{exact.name}&rdquo; — press Enter to use it.
+          Matches existing &ldquo;{exact.name}&rdquo;. Press Enter to use it.
         </span>
       )}
 

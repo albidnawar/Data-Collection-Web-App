@@ -152,14 +152,14 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
                 <td className="px-3 py-2">{r.rep.name}</td>
                 <td className="px-3 py-2">{r.brand.name}</td>
                 <td className="px-3 py-2">{r.isPosm ? "POSM" : "Category Shelf Display"}</td>
-                <td className="px-3 py-2">{r.isPosm ? (r.posmType?.name ?? "—") : (r.category?.name ?? "—")}</td>
+                <td className="px-3 py-2">{r.isPosm ? (r.posmType?.name ?? "-") : (r.category?.name ?? "-")}</td>
                 <td className="px-3 py-2">{r.shopType.name}</td>
                 <td className="px-3 py-2">
                   <span className={r.isGoodExecution ? "text-green-600" : "text-red-600"}>
                     {r.isGoodExecution ? "Good" : "Bad"}
                   </span>
                 </td>
-                <td className="px-3 py-2">{r.address ?? "—"}</td>
+                <td className="px-3 py-2">{r.address ?? "-"}</td>
                 <td className="px-3 py-2">
                   <span
                     className={
@@ -179,7 +179,7 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
                       Open
                     </a>
                   ) : (
-                    "—"
+                    "-"
                   )}
                 </td>
                 <td className="px-3 py-2">
@@ -200,7 +200,7 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
 
       <div className="flex items-center justify-between text-sm text-gray-500">
         <span>
-          {total} result{total === 1 ? "" : "s"} — page {page} of {totalPages}
+          {total} result{total === 1 ? "" : "s"}, page {page} of {totalPages}
         </span>
         <div className="flex gap-2">
           {page > 1 && (

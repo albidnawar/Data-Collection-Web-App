@@ -41,7 +41,7 @@ function QueueItem({ item }: { item: PendingUpload }) {
         </p>
         <p className={`text-xs font-semibold ${statusColor[item.status]}`}>
           {statusLabel[item.status]}
-          {item.status === "failed" && item.lastError ? ` — ${item.lastError}` : ""}
+          {item.status === "failed" && item.lastError ? `: ${item.lastError}` : ""}
         </p>
       </div>
       {item.status === "failed" && (

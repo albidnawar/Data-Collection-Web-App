@@ -96,7 +96,7 @@ export function TagDeleteControl({ type, id, otherOptions }: Props) {
                 </select>
               </>
             ) : (
-              <span className="text-xs text-red-600">Add another value first — nothing to merge into.</span>
+              <span className="text-xs text-red-600">Add another value first. Nothing to merge into.</span>
             ))}
           <div className="flex flex-wrap gap-2">
             <button

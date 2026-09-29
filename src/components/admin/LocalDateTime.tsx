@@ -12,5 +12,5 @@ export function LocalDateTime({ iso }: { iso: string }) {
     setFormatted(new Date(iso).toLocaleString());
   }, [iso]);
 
-  return <>{formatted ?? "—"}</>;
+  return <>{formatted ?? "-"}</>;
 }

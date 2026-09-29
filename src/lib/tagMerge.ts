@@ -76,7 +76,7 @@ export async function mergeAndDeleteTag(
 
   if (affected.length > 0) {
     if (!mergeIntoId) {
-      throw new Error("A merge target is required — this tag is used by existing photos");
+      throw new Error("A merge target is required. This tag is used by existing photos");
     }
     const newName = await getTagName(type, mergeIntoId);
     if (!newName) {

@@ -84,7 +84,7 @@ export async function deleteRepAction(repId: string) {
   const photoCount = await prisma.photoRecord.count({ where: { repId } });
   if (photoCount > 0) {
     throw new Error(
-      `This rep has ${photoCount} photo${photoCount === 1 ? "" : "s"} on record and can't be deleted — deactivate them instead.`,
+      `This rep has ${photoCount} photo${photoCount === 1 ? "" : "s"} on record and can't be deleted. Deactivate them instead.`,
     );
   }
 

@@ -123,7 +123,7 @@ export default function CapturePage() {
     notifyQueueChanged();
     void drainUploadQueue();
 
-    setSaveMessage("Saved — queued for upload.");
+    setSaveMessage("Saved. Queued for upload.");
 
     setPhoto(null);
     setPreviewUrl(null);
@@ -158,7 +158,7 @@ export default function CapturePage() {
       {locationBlocked && (
         <div className="flex flex-col gap-2 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm dark:border-amber-900 dark:bg-amber-950">
           <p className="font-semibold text-amber-800 dark:text-amber-200">
-            Location access is off — photos won&apos;t record where they were taken until it&apos;s turned back on.
+            Location access is off. Photos won&apos;t record where they were taken until it&apos;s turned back on.
           </p>
           <p className="font-medium text-amber-800 dark:text-amber-200">{getLocationHelp().title}:</p>
           <ol className="list-decimal space-y-1 pl-5 text-amber-800 dark:text-amber-200">
@@ -171,7 +171,7 @@ export default function CapturePage() {
             onClick={() => void requestLocation()}
             className="self-start rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white"
           >
-            I&apos;ve done this — try again
+            I&apos;ve done this, try again
           </button>
         </div>
       )}
@@ -249,7 +249,7 @@ export default function CapturePage() {
 
       {locationUnavailable && !locationBlocked && !locatingGps && (
         <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-          Couldn&apos;t get a GPS fix for this photo (common indoors) — it will save without a location.
+          Couldn&apos;t get a GPS fix for this photo (common indoors). It will save without a location.
         </p>
       )}
 

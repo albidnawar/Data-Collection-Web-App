@@ -161,7 +161,7 @@ export default async function AdminOverviewPage() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Top brands — bad executions</h2>
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Top brands by bad executions</h2>
             <Link href="/admin/photos?executionQuality=bad" className="text-sm font-medium text-blue-600">
               View all
             </Link>
@@ -225,7 +225,7 @@ export default async function AdminOverviewPage() {
               <li key={f.id} className="text-sm">
                 <span className="font-medium text-gray-900 dark:text-gray-100">{f.brand.name}</span>{" "}
                 <span className="text-gray-500 dark:text-gray-400">
-                  by {f.rep.name} — {f.errorMessage ?? "Unknown error"}
+                  by {f.rep.name}: {f.errorMessage ?? "Unknown error"}
                 </span>
               </li>
             ))}

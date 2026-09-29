@@ -37,7 +37,7 @@ export async function deleteAttendanceAction(id: string): Promise<{ error: strin
 
   if (failedLabels.length > 0) {
     return {
-      error: `Record deleted, but the ${failedLabels.join(" and ")} selfie couldn't be removed from Drive — check server logs.`,
+      error: `Record deleted, but the ${failedLabels.join(" and ")} selfie couldn't be removed from Drive. Check server logs.`,
     };
   }
   return { error: null };

@@ -101,13 +101,13 @@ export function AttendanceClient({
       const res = await fetch("/api/attendance", { method: "POST", body: formData });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        throw new Error(data?.error ?? "Something went wrong — please try again.");
+        throw new Error(data?.error ?? "Something went wrong. Please try again.");
       }
 
       router.push("/");
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong — please try again.");
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
       setSubmitting(false);
     }
   };
@@ -118,7 +118,7 @@ export function AttendanceClient({
         <CheckCircle2 className="size-10 text-green-600" strokeWidth={1.75} />
         <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">You&apos;re all set for today</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Started at <LocalDateTime iso={clockInAt as string} /> — ended at <LocalDateTime iso={clockOutAt as string} />
+          Started at <LocalDateTime iso={clockInAt as string} />, ended at <LocalDateTime iso={clockOutAt as string} />
         </p>
         <Link href="/" className="mt-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white">
           Back to app
@@ -149,7 +149,7 @@ export function AttendanceClient({
         {locationBlocked && (
           <div className="mb-4 flex flex-col gap-2 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm dark:border-amber-900 dark:bg-amber-950">
             <p className="font-semibold text-amber-800 dark:text-amber-200">
-              Location access is off — turn it back on to continue.
+              Location access is off. Turn it back on to continue.
             </p>
             <p className="font-medium text-amber-800 dark:text-amber-200">{getLocationHelp().title}:</p>
             <ol className="list-decimal space-y-1 pl-5 text-amber-800 dark:text-amber-200">
@@ -162,7 +162,7 @@ export function AttendanceClient({
               onClick={() => void requestLocation()}
               className="self-start rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white"
             >
-              I&apos;ve done this — try again
+              I&apos;ve done this, try again
             </button>
           </div>
         )}
@@ -198,7 +198,7 @@ export function AttendanceClient({
 
         {locationUnavailable && !locationBlocked && !locatingGps && (
           <p className="mt-3 text-center text-sm text-gray-500 dark:text-gray-400">
-            Couldn&apos;t get a location fix (common indoors) — try stepping outside and tap retry above.
+            Couldn&apos;t get a location fix (common indoors). Try stepping outside and tap retry above.
           </p>
         )}
 

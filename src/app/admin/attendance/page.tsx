@@ -98,27 +98,27 @@ export default async function AdminAttendancePage(props: PageProps<"/admin/atten
                 <td className="px-3 py-2 whitespace-nowrap">
                   <LocalDateTime iso={r.clockInAt.toISOString()} />
                 </td>
-                <td className="px-3 py-2">{r.clockInAddress ?? "—"}</td>
+                <td className="px-3 py-2">{r.clockInAddress ?? "-"}</td>
                 <td className="px-3 py-2">
                   {r.clockInPhotoUrl ? (
                     <a href={r.clockInPhotoUrl} target="_blank" rel="noreferrer" className="text-blue-600">
                       View
                     </a>
                   ) : (
-                    "—"
+                    "-"
                   )}
                 </td>
                 <td className="px-3 py-2 whitespace-nowrap">
-                  {r.clockOutAt ? <LocalDateTime iso={r.clockOutAt.toISOString()} /> : "—"}
+                  {r.clockOutAt ? <LocalDateTime iso={r.clockOutAt.toISOString()} /> : "-"}
                 </td>
-                <td className="px-3 py-2">{r.clockOutAddress ?? "—"}</td>
+                <td className="px-3 py-2">{r.clockOutAddress ?? "-"}</td>
                 <td className="px-3 py-2">
                   {r.clockOutPhotoUrl ? (
                     <a href={r.clockOutPhotoUrl} target="_blank" rel="noreferrer" className="text-blue-600">
                       View
                     </a>
                   ) : (
-                    "—"
+                    "-"
                   )}
                 </td>
                 <td className="px-3 py-2">
@@ -139,7 +139,7 @@ export default async function AdminAttendancePage(props: PageProps<"/admin/atten
 
       <div className="flex items-center justify-between text-sm text-gray-500">
         <span>
-          {total} result{total === 1 ? "" : "s"} — page {page} of {totalPages}
+          {total} result{total === 1 ? "" : "s"}, page {page} of {totalPages}
         </span>
         <div className="flex gap-2">
           {page > 1 && (
