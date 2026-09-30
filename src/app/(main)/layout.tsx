@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { getTodayAttendance } from "@/lib/attendance";
 import { QueueBadge } from "@/components/QueueBadge";
+import { TodayPhotoCountBadge } from "@/components/TodayPhotoCountBadge";
 import { SyncManager } from "@/components/SyncManager";
 import { logoutAction } from "./actions";
 
@@ -24,6 +25,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
           CamTag
         </Link>
         <div className="flex items-center gap-3">
+          <TodayPhotoCountBadge />
           <QueueBadge />
           {attendance && !attendance.clockOutAt && (
             <Link href="/attendance" className="text-sm font-medium text-gray-600 dark:text-gray-400">
