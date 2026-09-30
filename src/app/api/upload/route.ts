@@ -26,6 +26,8 @@ interface ClaimParams {
   gpsLat: number | null;
   gpsLng: number | null;
   address: string | null;
+  remarks: string | null;
+  shelfVacancy: boolean | null;
   capturedAt: Date;
   filename: string;
 }
@@ -51,6 +53,8 @@ async function claimPhotoRecordForUpload(
     gpsLat: params.gpsLat,
     gpsLng: params.gpsLng,
     address: params.address,
+    remarks: params.remarks,
+    shelfVacancy: params.shelfVacancy,
     capturedAt: params.capturedAt,
     filename: params.filename,
   };
@@ -112,6 +116,8 @@ export async function POST(request: Request) {
   const gpsLatRaw = formData.get("gpsLat");
   const gpsLngRaw = formData.get("gpsLng");
   const address = requireString(formData, "address");
+  const remarks = requireString(formData, "remarks");
+  const shelfVacancyRaw = formData.get("shelfVacancy");
   const photo = formData.get("photo");
 
   if (
@@ -149,6 +155,7 @@ export async function POST(request: Request) {
 
   const gpsLat = gpsLatRaw ? Number(gpsLatRaw) : null;
   const gpsLng = gpsLngRaw ? Number(gpsLngRaw) : null;
+  const shelfVacancy = shelfVacancyRaw === "true" ? true : shelfVacancyRaw === "false" ? false : null;
 
   const claimed = await claimPhotoRecordForUpload({
     clientQueueId,
@@ -162,6 +169,8 @@ export async function POST(request: Request) {
     gpsLat,
     gpsLng,
     address,
+    remarks,
+    shelfVacancy,
     capturedAt,
     filename,
   });

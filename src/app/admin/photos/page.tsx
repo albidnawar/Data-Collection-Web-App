@@ -19,6 +19,7 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
     isPosm: get("isPosm"),
     status: get("status"),
     executionQuality: get("executionQuality"),
+    shelfVacancy: get("shelfVacancy"),
   };
   const page = Math.max(1, Number(get("page") ?? "1") || 1);
 
@@ -121,6 +122,14 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
             <option value="bad">Bad</option>
           </select>
         </label>
+        <label className="flex flex-col gap-1 text-xs text-gray-500">
+          Shelf vacancy
+          <select name="shelfVacancy" defaultValue={filters.shelfVacancy ?? ""} className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800">
+            <option value="">All</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+        </label>
         <button type="submit" className="self-end rounded-lg bg-gray-900 px-4 py-1.5 text-sm font-medium text-white dark:bg-gray-100 dark:text-gray-900">
           Filter
         </button>
@@ -137,6 +146,8 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
               <th className="px-3 py-2">Type</th>
               <th className="px-3 py-2">Shop type</th>
               <th className="px-3 py-2">Execution</th>
+              <th className="px-3 py-2">Shelf Vacancy</th>
+              <th className="px-3 py-2">Remarks</th>
               <th className="px-3 py-2">Location</th>
               <th className="px-3 py-2">Status</th>
               <th className="px-3 py-2">Drive</th>
@@ -158,6 +169,12 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
                   <span className={r.isGoodExecution ? "text-green-600" : "text-red-600"}>
                     {r.isGoodExecution ? "Good" : "Bad"}
                   </span>
+                </td>
+                <td className="px-3 py-2">
+                  {r.shelfVacancy === true ? "Yes" : r.shelfVacancy === false ? "No" : "-"}
+                </td>
+                <td className="max-w-[200px] truncate px-3 py-2" title={r.remarks ?? undefined}>
+                  {r.remarks ?? "-"}
                 </td>
                 <td className="px-3 py-2">{r.address ?? "-"}</td>
                 <td className="px-3 py-2">
@@ -189,7 +206,7 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
             ))}
             {records.length === 0 && (
               <tr>
-                <td colSpan={11} className="px-3 py-6 text-center text-gray-500">
+                <td colSpan={13} className="px-3 py-6 text-center text-gray-500">
                   No photos match these filters.
                 </td>
               </tr>

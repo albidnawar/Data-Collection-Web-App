@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Camera } from "lucide-react";
 import { ChipGroup } from "@/components/ChipGroup";
 import { ExecutionQualityToggle } from "@/components/ExecutionQualityToggle";
+import { ShelfVacancyToggle } from "@/components/ShelfVacancyToggle";
 import { TagKindToggle } from "@/components/TagKindToggle";
 import { useTagCache } from "@/hooks/useTagCache";
 import { notifyQueueChanged } from "@/hooks/usePendingQueue";
@@ -34,6 +35,8 @@ export default function CapturePage() {
   const [category, setCategory] = useState<string | null>(null);
   const [posmType, setPosmType] = useState<string | null>(null);
   const [shopType, setShopType] = useState<string | null>(null);
+  const [remarks, setRemarks] = useState("");
+  const [shelfVacancy, setShelfVacancy] = useState<boolean | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [compressing, setCompressing] = useState(false);
 
@@ -108,6 +111,8 @@ export default function CapturePage() {
       gpsLat: gps?.lat ?? null,
       gpsLng: gps?.lng ?? null,
       address: gps ? formatRawCoords(gps.lat, gps.lng) : null,
+      remarks: remarks.trim() || null,
+      shelfVacancy,
       capturedAt: capturedAt.toISOString(),
       status: "queued",
       attempts: 0,
@@ -133,10 +138,13 @@ export default function CapturePage() {
     setPosmType(null);
     setIsPosm(false);
     setIsGoodExecution(null);
+    setRemarks("");
+    setShelfVacancy(null);
     // Smart defaults: brand and shop type carry forward since reps usually
     // shoot several photos of the same brand/shop in a row. Location is always
-    // re-detected fresh per photo, never carried over. Execution quality is
-    // also never carried over — it needs a conscious choice every time.
+    // re-detected fresh per photo, never carried over. Execution quality,
+    // remarks, and shelf vacancy are also never carried over — each needs a
+    // fresh (or deliberately blank) answer every time.
   };
 
   const brandOptions = cache ? sortByMostRecentlyUsed("brand", cache.brands) : [];
@@ -246,6 +254,22 @@ export default function CapturePage() {
         onSelect={setShopType}
         onAddNew={(name) => handleAddNewTag("shopType", name)}
       />
+
+      <div className="flex flex-col gap-2">
+        <label htmlFor="remarks" className="text-sm font-medium text-gray-600 dark:text-gray-400">
+          Outlet remarks (optional)
+        </label>
+        <textarea
+          id="remarks"
+          rows={3}
+          value={remarks}
+          onChange={(e) => setRemarks(e.target.value)}
+          placeholder="Anything notable about the outlet or its surroundings…"
+          className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 focus:border-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+        />
+      </div>
+
+      <ShelfVacancyToggle shelfVacancy={shelfVacancy} onChange={setShelfVacancy} />
 
       {locationUnavailable && !locationBlocked && !locatingGps && (
         <p className="text-center text-sm text-gray-500 dark:text-gray-400">

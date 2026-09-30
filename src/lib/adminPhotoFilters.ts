@@ -9,6 +9,7 @@ export interface PhotoFilterParams {
   isPosm?: string;
   status?: string;
   executionQuality?: string;
+  shelfVacancy?: string;
 }
 
 export function buildPhotoWhere(params: PhotoFilterParams): Prisma.PhotoRecordWhereInput {
@@ -29,6 +30,8 @@ export function buildPhotoWhere(params: PhotoFilterParams): Prisma.PhotoRecordWh
   }
   if (params.executionQuality === "good") where.isGoodExecution = true;
   if (params.executionQuality === "bad") where.isGoodExecution = false;
+  if (params.shelfVacancy === "yes") where.shelfVacancy = true;
+  if (params.shelfVacancy === "no") where.shelfVacancy = false;
 
   return where;
 }
