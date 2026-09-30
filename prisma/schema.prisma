@@ -109,8 +109,9 @@ model PhotoRecord {
   gpsLng  Float?
   address String?
 
-  remarks      String?
-  shelfVacancy Boolean?
+  surroundingRemarks String?
+  otherRemarks       String?
+  shelfVacancy       Boolean?
 
   capturedAt DateTime
   uploadedAt DateTime?

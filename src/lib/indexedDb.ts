@@ -19,7 +19,8 @@ export interface PendingUpload {
   gpsLat: number | null;
   gpsLng: number | null;
   address: string | null;
-  remarks: string | null;
+  surroundingRemarks: string | null;
+  otherRemarks: string | null;
   shelfVacancy: boolean | null;
   capturedAt: string;
   status: UploadQueueStatus;

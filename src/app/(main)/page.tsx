@@ -35,7 +35,8 @@ export default function CapturePage() {
   const [category, setCategory] = useState<string | null>(null);
   const [posmType, setPosmType] = useState<string | null>(null);
   const [shopType, setShopType] = useState<string | null>(null);
-  const [remarks, setRemarks] = useState("");
+  const [surroundingRemarks, setSurroundingRemarks] = useState("");
+  const [otherRemarks, setOtherRemarks] = useState("");
   const [shelfVacancy, setShelfVacancy] = useState<boolean | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [compressing, setCompressing] = useState(false);
@@ -111,7 +112,8 @@ export default function CapturePage() {
       gpsLat: gps?.lat ?? null,
       gpsLng: gps?.lng ?? null,
       address: gps ? formatRawCoords(gps.lat, gps.lng) : null,
-      remarks: remarks.trim() || null,
+      surroundingRemarks: surroundingRemarks.trim() || null,
+      otherRemarks: otherRemarks.trim() || null,
       shelfVacancy,
       capturedAt: capturedAt.toISOString(),
       status: "queued",
@@ -138,7 +140,8 @@ export default function CapturePage() {
     setPosmType(null);
     setIsPosm(false);
     setIsGoodExecution(null);
-    setRemarks("");
+    setSurroundingRemarks("");
+    setOtherRemarks("");
     setShelfVacancy(null);
     // Smart defaults: brand and shop type carry forward since reps usually
     // shoot several photos of the same brand/shop in a row. Location is always
@@ -256,15 +259,29 @@ export default function CapturePage() {
       />
 
       <div className="flex flex-col gap-2">
-        <label htmlFor="remarks" className="text-sm font-medium text-gray-600 dark:text-gray-400">
-          Outlet remarks (optional)
+        <label htmlFor="surroundingRemarks" className="text-sm font-medium text-gray-600 dark:text-gray-400">
+          Surrounding remarks (optional)
         </label>
         <textarea
-          id="remarks"
+          id="surroundingRemarks"
           rows={3}
-          value={remarks}
-          onChange={(e) => setRemarks(e.target.value)}
-          placeholder="Anything notable about the outlet or its surroundings…"
+          value={surroundingRemarks}
+          onChange={(e) => setSurroundingRemarks(e.target.value)}
+          placeholder="Anything notable about the outlet's surroundings…"
+          className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 focus:border-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+        />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <label htmlFor="otherRemarks" className="text-sm font-medium text-gray-600 dark:text-gray-400">
+          Other remarks (optional)
+        </label>
+        <textarea
+          id="otherRemarks"
+          rows={3}
+          value={otherRemarks}
+          onChange={(e) => setOtherRemarks(e.target.value)}
+          placeholder="Anything else worth noting…"
           className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 focus:border-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
         />
       </div>

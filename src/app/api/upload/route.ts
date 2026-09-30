@@ -26,7 +26,8 @@ interface ClaimParams {
   gpsLat: number | null;
   gpsLng: number | null;
   address: string | null;
-  remarks: string | null;
+  surroundingRemarks: string | null;
+  otherRemarks: string | null;
   shelfVacancy: boolean | null;
   capturedAt: Date;
   filename: string;
@@ -53,7 +54,8 @@ async function claimPhotoRecordForUpload(
     gpsLat: params.gpsLat,
     gpsLng: params.gpsLng,
     address: params.address,
-    remarks: params.remarks,
+    surroundingRemarks: params.surroundingRemarks,
+    otherRemarks: params.otherRemarks,
     shelfVacancy: params.shelfVacancy,
     capturedAt: params.capturedAt,
     filename: params.filename,
@@ -116,7 +118,8 @@ export async function POST(request: Request) {
   const gpsLatRaw = formData.get("gpsLat");
   const gpsLngRaw = formData.get("gpsLng");
   const address = requireString(formData, "address");
-  const remarks = requireString(formData, "remarks");
+  const surroundingRemarks = requireString(formData, "surroundingRemarks");
+  const otherRemarks = requireString(formData, "otherRemarks");
   const shelfVacancyRaw = formData.get("shelfVacancy");
   const photo = formData.get("photo");
 
@@ -169,7 +172,8 @@ export async function POST(request: Request) {
     gpsLat,
     gpsLng,
     address,
-    remarks,
+    surroundingRemarks,
+    otherRemarks,
     shelfVacancy,
     capturedAt,
     filename,

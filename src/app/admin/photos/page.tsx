@@ -147,7 +147,8 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
               <th className="px-3 py-2">Shop type</th>
               <th className="px-3 py-2">Execution</th>
               <th className="px-3 py-2">Shelf Vacancy</th>
-              <th className="px-3 py-2">Remarks</th>
+              <th className="px-3 py-2">Surrounding Remarks</th>
+              <th className="px-3 py-2">Other Remarks</th>
               <th className="px-3 py-2">Location</th>
               <th className="px-3 py-2">Status</th>
               <th className="px-3 py-2">Drive</th>
@@ -173,8 +174,11 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
                 <td className="px-3 py-2">
                   {r.shelfVacancy === true ? "Yes" : r.shelfVacancy === false ? "No" : "-"}
                 </td>
-                <td className="max-w-[200px] truncate px-3 py-2" title={r.remarks ?? undefined}>
-                  {r.remarks ?? "-"}
+                <td className="max-w-[200px] truncate px-3 py-2" title={r.surroundingRemarks ?? undefined}>
+                  {r.surroundingRemarks ?? "-"}
+                </td>
+                <td className="max-w-[200px] truncate px-3 py-2" title={r.otherRemarks ?? undefined}>
+                  {r.otherRemarks ?? "-"}
                 </td>
                 <td className="px-3 py-2">{r.address ?? "-"}</td>
                 <td className="px-3 py-2">
@@ -206,7 +210,7 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
             ))}
             {records.length === 0 && (
               <tr>
-                <td colSpan={13} className="px-3 py-6 text-center text-gray-500">
+                <td colSpan={14} className="px-3 py-6 text-center text-gray-500">
                   No photos match these filters.
                 </td>
               </tr>
