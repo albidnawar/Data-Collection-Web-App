@@ -10,8 +10,9 @@ import { logoutAction } from "./actions";
 export default async function MainLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   const attendance = session?.user ? await getTodayAttendance(session.user.id) : null;
+  const attendanceGateDisabled = process.env.DISABLE_ATTENDANCE_GATE === "true";
 
-  if (session?.user && !attendance) {
+  if (session?.user && !attendance && !attendanceGateDisabled) {
     redirect("/attendance");
   }
 
