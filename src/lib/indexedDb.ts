@@ -1,4 +1,5 @@
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
+import type { PhotoKind } from "@/lib/tagTypes";
 
 export type UploadQueueStatus = "queued" | "uploading" | "failed" | "uploaded";
 
@@ -11,10 +12,11 @@ export interface PendingUpload {
   clientQueueId: string;
   photoBlob: Blob;
   brand: TagRef;
-  isPosm: boolean;
+  kind: PhotoKind;
   isGoodExecution: boolean;
   category: TagRef | null;
   posmType: TagRef | null;
+  skuType: TagRef | null;
   shopType: TagRef;
   gpsLat: number | null;
   gpsLng: number | null;
@@ -38,6 +40,7 @@ export interface TagCache {
   brands: TagOption[];
   categories: TagOption[];
   posmTypes: TagOption[];
+  skuTypes: TagOption[];
   shopTypes: TagOption[];
   fetchedAt: string;
 }

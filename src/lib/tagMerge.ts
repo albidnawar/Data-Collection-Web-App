@@ -12,6 +12,8 @@ function whereForType(type: TagType, id: string): Prisma.PhotoRecordWhereInput {
       return { categoryId: id };
     case "posmType":
       return { posmTypeId: id };
+    case "skuType":
+      return { skuTypeId: id };
     case "shopType":
       return { shopTypeId: id };
   }
@@ -25,6 +27,8 @@ function updateDataForType(type: TagType, id: string): Prisma.PhotoRecordUpdateI
       return { category: { connect: { id } } };
     case "posmType":
       return { posmType: { connect: { id } } };
+    case "skuType":
+      return { skuType: { connect: { id } } };
     case "shopType":
       return { shopType: { connect: { id } } };
   }
@@ -38,6 +42,8 @@ async function getTagName(type: TagType, id: string): Promise<string | null> {
       return (await prisma.category.findUnique({ where: { id } }))?.name ?? null;
     case "posmType":
       return (await prisma.posmType.findUnique({ where: { id } }))?.name ?? null;
+    case "skuType":
+      return (await prisma.skuType.findUnique({ where: { id } }))?.name ?? null;
     case "shopType":
       return (await prisma.shopType.findUnique({ where: { id } }))?.name ?? null;
   }
@@ -51,6 +57,8 @@ async function deleteTagRow(type: TagType, id: string) {
       return prisma.category.delete({ where: { id } });
     case "posmType":
       return prisma.posmType.delete({ where: { id } });
+    case "skuType":
+      return prisma.skuType.delete({ where: { id } });
     case "shopType":
       return prisma.shopType.delete({ where: { id } });
   }
@@ -71,7 +79,7 @@ export async function mergeAndDeleteTag(
 
   const affected = await prisma.photoRecord.findMany({
     where: whereForType(type, deleteId),
-    include: { brand: true, category: true, posmType: true, shopType: true },
+    include: { brand: true, category: true, posmType: true, skuType: true, shopType: true },
   });
 
   if (affected.length > 0) {
@@ -85,14 +93,18 @@ export async function mergeAndDeleteTag(
 
     for (const record of affected) {
       const typeName =
-        type === "posmType" || type === "category"
+        type === "posmType" || type === "category" || type === "skuType"
           ? newName
-          : ((record.isPosm ? record.posmType?.name : record.category?.name) ?? "");
+          : ((record.kind === "posm"
+              ? record.posmType?.name
+              : record.kind === "category"
+                ? record.category?.name
+                : record.skuType?.name) ?? "");
 
       const filename = generateFilename(
         {
           brand: type === "brand" ? newName : record.brand.name,
-          isPosm: record.isPosm,
+          kind: record.kind,
           typeName,
           shopType: type === "shopType" ? newName : record.shopType.name,
         },

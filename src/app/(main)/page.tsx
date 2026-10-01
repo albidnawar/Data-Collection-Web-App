@@ -15,7 +15,7 @@ import { compressImageIfNeeded } from "@/lib/imageCompression";
 import { addPendingUpload, type TagRef } from "@/lib/indexedDb";
 import { recordTagUse, sortByMostRecentlyUsed } from "@/lib/recentTags";
 import { drainUploadQueue } from "@/lib/syncQueue";
-import type { TagType } from "@/lib/tagTypes";
+import type { PhotoKind, TagType } from "@/lib/tagTypes";
 
 export default function CapturePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -30,10 +30,11 @@ export default function CapturePage() {
   const [locationUnavailable, setLocationUnavailable] = useState(false);
 
   const [brand, setBrand] = useState<string | null>(null);
-  const [isPosm, setIsPosm] = useState(false);
+  const [kind, setKind] = useState<PhotoKind>("category");
   const [isGoodExecution, setIsGoodExecution] = useState<boolean | null>(null);
   const [category, setCategory] = useState<string | null>(null);
   const [posmType, setPosmType] = useState<string | null>(null);
+  const [skuType, setSkuType] = useState<string | null>(null);
   const [shopType, setShopType] = useState<string | null>(null);
   const [surroundingRemarks, setSurroundingRemarks] = useState("");
   const [otherRemarks, setOtherRemarks] = useState("");
@@ -93,7 +94,7 @@ export default function CapturePage() {
     brand !== null &&
     shopType !== null &&
     isGoodExecution !== null &&
-    (isPosm ? posmType !== null : category !== null);
+    (kind === "posm" ? posmType !== null : kind === "category" ? category !== null : skuType !== null);
 
   const handleSave = async () => {
     if (!canSave || !photo || !capturedAt || !brand || !shopType || isGoodExecution === null) return;
@@ -104,10 +105,11 @@ export default function CapturePage() {
       clientQueueId: crypto.randomUUID(),
       photoBlob: photo,
       brand: tagRef(brand),
-      isPosm,
+      kind,
       isGoodExecution,
-      category: !isPosm && category ? tagRef(category) : null,
-      posmType: isPosm && posmType ? tagRef(posmType) : null,
+      category: kind === "category" && category ? tagRef(category) : null,
+      posmType: kind === "posm" && posmType ? tagRef(posmType) : null,
+      skuType: kind === "sku" && skuType ? tagRef(skuType) : null,
       shopType: tagRef(shopType),
       gpsLat: gps?.lat ?? null,
       gpsLng: gps?.lng ?? null,
@@ -124,8 +126,9 @@ export default function CapturePage() {
 
     recordTagUse("brand", brand);
     recordTagUse("shopType", shopType);
-    if (isPosm && posmType) recordTagUse("posmType", posmType);
-    if (!isPosm && category) recordTagUse("category", category);
+    if (kind === "posm" && posmType) recordTagUse("posmType", posmType);
+    if (kind === "category" && category) recordTagUse("category", category);
+    if (kind === "sku" && skuType) recordTagUse("skuType", skuType);
 
     notifyQueueChanged();
     void drainUploadQueue();
@@ -138,7 +141,8 @@ export default function CapturePage() {
     setGps(null);
     setCategory(null);
     setPosmType(null);
-    setIsPosm(false);
+    setSkuType(null);
+    setKind("category");
     setIsGoodExecution(null);
     setSurroundingRemarks("");
     setOtherRemarks("");
@@ -153,6 +157,7 @@ export default function CapturePage() {
   const brandOptions = cache ? sortByMostRecentlyUsed("brand", cache.brands) : [];
   const categoryOptions = cache ? sortByMostRecentlyUsed("category", cache.categories) : [];
   const posmTypeOptions = cache ? sortByMostRecentlyUsed("posmType", cache.posmTypes) : [];
+  const skuTypeOptions = cache ? sortByMostRecentlyUsed("skuType", cache.skuTypes) : [];
   const shopTypeOptions = cache ? sortByMostRecentlyUsed("shopType", cache.shopTypes) : [];
 
   return (
@@ -230,9 +235,9 @@ export default function CapturePage() {
 
       <ExecutionQualityToggle isGoodExecution={isGoodExecution} onChange={setIsGoodExecution} />
 
-      <TagKindToggle isPosm={isPosm} onChange={setIsPosm} />
+      <TagKindToggle kind={kind} onChange={setKind} />
 
-      {isPosm ? (
+      {kind === "posm" ? (
         <ChipGroup
           label="POSM Type"
           options={posmTypeOptions}
@@ -240,13 +245,21 @@ export default function CapturePage() {
           onSelect={setPosmType}
           onAddNew={(name) => handleAddNewTag("posmType", name)}
         />
-      ) : (
+      ) : kind === "category" ? (
         <ChipGroup
           label="Category Shelf Display Type"
           options={categoryOptions}
           selected={category}
           onSelect={setCategory}
           onAddNew={(name) => handleAddNewTag("category", name)}
+        />
+      ) : (
+        <ChipGroup
+          label="SKU Type"
+          options={skuTypeOptions}
+          selected={skuType}
+          onSelect={setSkuType}
+          onAddNew={(name) => handleAddNewTag("skuType", name)}
         />
       )}
 

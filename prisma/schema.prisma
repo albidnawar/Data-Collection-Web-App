@@ -17,6 +17,12 @@ enum UploadStatus {
   failed
 }
 
+enum PhotoKind {
+  posm
+  category
+  sku
+}
+
 model Rep {
   id           String   @id @default(uuid())
   name         String
@@ -29,6 +35,7 @@ model Rep {
   createdBrands      Brand[]       @relation("BrandCreatedBy")
   createdCategories  Category[]    @relation("CategoryCreatedBy")
   createdPosmTypes   PosmType[]    @relation("PosmTypeCreatedBy")
+  createdSkuTypes    SkuType[]     @relation("SkuTypeCreatedBy")
   createdShopTypes   ShopType[]    @relation("ShopTypeCreatedBy")
   photoRecords       PhotoRecord[]
   attendances        Attendance[]
@@ -69,6 +76,17 @@ model PosmType {
   photoRecords PhotoRecord[]
 }
 
+model SkuType {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  createdById String?
+  createdBy   Rep?     @relation("SkuTypeCreatedBy", fields: [createdById], references: [id])
+
+  photoRecords PhotoRecord[]
+}
+
 model ShopType {
   id          String   @id @default(uuid())
   name        String   @unique
@@ -90,7 +108,7 @@ model PhotoRecord {
   brandId String
   brand   Brand  @relation(fields: [brandId], references: [id])
 
-  isPosm Boolean
+  kind PhotoKind
 
   isGoodExecution Boolean @default(true)
 
@@ -99,6 +117,9 @@ model PhotoRecord {
 
   posmTypeId String?
   posmType   PosmType? @relation(fields: [posmTypeId], references: [id])
+
+  skuTypeId String?
+  skuType   SkuType? @relation(fields: [skuTypeId], references: [id])
 
   shopTypeId String
   shopType   ShopType @relation(fields: [shopTypeId], references: [id])
@@ -132,6 +153,7 @@ model PhotoRecord {
   @@index([capturedAt])
   @@index([filenameSyncPending])
   @@index([isGoodExecution])
+  @@index([kind])
 }
 
 // One row per rep per day. dateKey is a "YYYY-MM-DD" string computed in the

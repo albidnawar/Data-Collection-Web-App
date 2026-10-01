@@ -18,10 +18,11 @@ function buildFormData(upload: PendingUpload): FormData {
   const formData = new FormData();
   formData.set("clientQueueId", upload.clientQueueId);
   formData.set("brandName", upload.brand.name);
-  formData.set("isPosm", String(upload.isPosm));
+  formData.set("kind", upload.kind);
   formData.set("isGoodExecution", String(upload.isGoodExecution));
   if (upload.category) formData.set("categoryName", upload.category.name);
   if (upload.posmType) formData.set("posmTypeName", upload.posmType.name);
+  if (upload.skuType) formData.set("skuTypeName", upload.skuType.name);
   formData.set("shopTypeName", upload.shopType.name);
   if (upload.gpsLat !== null) formData.set("gpsLat", String(upload.gpsLat));
   if (upload.gpsLng !== null) formData.set("gpsLng", String(upload.gpsLng));

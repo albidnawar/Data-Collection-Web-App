@@ -52,7 +52,7 @@ export default async function AdminOverviewPage() {
       take: 5,
     }),
     prisma.photoRecord.groupBy({
-      by: ["brandId", "isPosm"],
+      by: ["brandId", "kind"],
       where: { status: "uploaded" },
       _count: { _all: true },
     }),
@@ -101,15 +101,18 @@ export default async function AdminOverviewPage() {
     count: b._count._all,
   }));
 
-  const brandKindMap = new Map<string, { name: string; posm: number; category: number }>();
+  const brandKindMap = new Map<string, { name: string; posm: number; category: number; sku: number }>();
   for (const row of brandKindCountsRaw) {
     const name = brands.find((br) => br.id === row.brandId)?.name ?? "Unknown";
-    const entry = brandKindMap.get(row.brandId) ?? { name, posm: 0, category: 0 };
-    if (row.isPosm) entry.posm += row._count._all;
-    else entry.category += row._count._all;
+    const entry = brandKindMap.get(row.brandId) ?? { name, posm: 0, category: 0, sku: 0 };
+    if (row.kind === "posm") entry.posm += row._count._all;
+    else if (row.kind === "category") entry.category += row._count._all;
+    else entry.sku += row._count._all;
     brandKindMap.set(row.brandId, entry);
   }
-  const brandKindCounts = [...brandKindMap.values()].sort((a, b) => b.posm + b.category - (a.posm + a.category));
+  const brandKindCounts = [...brandKindMap.values()].sort(
+    (a, b) => b.posm + b.category + b.sku - (a.posm + a.category + a.sku),
+  );
 
   const dailyMap = new Map(dailyRaw.map((d) => [d.day.toISOString().slice(0, 10), Number(d.count)]));
   const chartData: UploadsChartPoint[] = Array.from({ length: 14 }, (_, i) => {
@@ -178,27 +181,29 @@ export default async function AdminOverviewPage() {
         </div>
 
         <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-          <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Brand-wise POSM / Category Shelf Display</h2>
+          <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Brand-wise POSM / Category Shelf Display / SKU</h2>
           <div className="max-h-64 overflow-y-auto">
             <table className="w-full text-left text-sm">
               <thead className="text-xs uppercase text-gray-500">
                 <tr>
                   <th className="py-1 pr-2">Brand</th>
                   <th className="py-1 pr-2 text-right">POSM</th>
-                  <th className="py-1 text-right">Category</th>
+                  <th className="py-1 pr-2 text-right">Category</th>
+                  <th className="py-1 text-right">SKU</th>
                 </tr>
               </thead>
               <tbody>
                 {brandKindCounts.length === 0 && (
                   <tr>
-                    <td colSpan={3} className="py-2 text-sm text-gray-500">No uploads yet.</td>
+                    <td colSpan={4} className="py-2 text-sm text-gray-500">No uploads yet.</td>
                   </tr>
                 )}
                 {brandKindCounts.map((b) => (
                   <tr key={b.name} className="border-t border-gray-100 dark:border-gray-800">
                     <td className="py-1 pr-2 text-gray-700 dark:text-gray-300">{b.name}</td>
                     <td className="py-1 pr-2 text-right font-medium text-gray-900 dark:text-gray-100">{b.posm}</td>
-                    <td className="py-1 text-right font-medium text-gray-900 dark:text-gray-100">{b.category}</td>
+                    <td className="py-1 pr-2 text-right font-medium text-gray-900 dark:text-gray-100">{b.category}</td>
+                    <td className="py-1 text-right font-medium text-gray-900 dark:text-gray-100">{b.sku}</td>
                   </tr>
                 ))}
               </tbody>

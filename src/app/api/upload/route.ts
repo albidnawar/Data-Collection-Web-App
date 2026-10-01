@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { generateFilename } from "@/lib/filename";
 import { resolveOrCreateBadExecutionBrandFolder, resolveOrCreateBrandFolder, uploadPhotoToDrive } from "@/lib/driveFolders";
 import { resolveOrCreateTag } from "@/lib/tagResolve";
+import { isPhotoKind, type PhotoKind } from "@/lib/tagTypes";
 import type { PhotoRecord } from "@/generated/prisma/client";
 
 export const maxDuration = 60;
@@ -18,10 +19,11 @@ interface ClaimParams {
   clientQueueId: string;
   repId: string;
   brandId: string;
-  isPosm: boolean;
+  kind: PhotoKind;
   isGoodExecution: boolean;
   categoryId: string | null;
   posmTypeId: string | null;
+  skuTypeId: string | null;
   shopTypeId: string;
   gpsLat: number | null;
   gpsLng: number | null;
@@ -46,10 +48,11 @@ async function claimPhotoRecordForUpload(
   const data = {
     repId: params.repId,
     brandId: params.brandId,
-    isPosm: params.isPosm,
+    kind: params.kind,
     isGoodExecution: params.isGoodExecution,
     categoryId: params.categoryId,
     posmTypeId: params.posmTypeId,
+    skuTypeId: params.skuTypeId,
     shopTypeId: params.shopTypeId,
     gpsLat: params.gpsLat,
     gpsLng: params.gpsLng,
@@ -112,9 +115,10 @@ export async function POST(request: Request) {
   const categoryName = requireString(formData, "categoryName");
   const shopTypeName = requireString(formData, "shopTypeName");
   const capturedAtRaw = requireString(formData, "capturedAt");
-  const isPosm = formData.get("isPosm") === "true";
+  const kindRaw = requireString(formData, "kind");
   const isGoodExecutionRaw = requireString(formData, "isGoodExecution");
   const posmTypeName = requireString(formData, "posmTypeName");
+  const skuTypeName = requireString(formData, "skuTypeName");
   const gpsLatRaw = formData.get("gpsLat");
   const gpsLngRaw = formData.get("gpsLng");
   const address = requireString(formData, "address");
@@ -129,28 +133,35 @@ export async function POST(request: Request) {
     !shopTypeName ||
     !capturedAtRaw ||
     !(photo instanceof File) ||
-    (isPosm && !posmTypeName) ||
-    (!isPosm && !categoryName) ||
+    !isPhotoKind(kindRaw) ||
+    (kindRaw === "posm" && !posmTypeName) ||
+    (kindRaw === "category" && !categoryName) ||
+    (kindRaw === "sku" && !skuTypeName) ||
     (isGoodExecutionRaw !== "true" && isGoodExecutionRaw !== "false")
   ) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
+  const kind = kindRaw;
   const isGoodExecution = isGoodExecutionRaw === "true";
   const capturedAt = new Date(capturedAtRaw);
 
-  const [brand, category, shopType, posmType] = await Promise.all([
+  const [brand, category, shopType, posmType, skuType] = await Promise.all([
     resolveOrCreateTag("brand", brandName, session.user.id),
-    !isPosm && categoryName ? resolveOrCreateTag("category", categoryName, session.user.id) : Promise.resolve(null),
+    kind === "category" && categoryName ? resolveOrCreateTag("category", categoryName, session.user.id) : Promise.resolve(null),
     resolveOrCreateTag("shopType", shopTypeName, session.user.id),
-    isPosm && posmTypeName ? resolveOrCreateTag("posmType", posmTypeName, session.user.id) : Promise.resolve(null),
+    kind === "posm" && posmTypeName ? resolveOrCreateTag("posmType", posmTypeName, session.user.id) : Promise.resolve(null),
+    kind === "sku" && skuTypeName ? resolveOrCreateTag("skuType", skuTypeName, session.user.id) : Promise.resolve(null),
   ]);
+
+  const typeName =
+    kind === "posm" ? (posmType?.name ?? "") : kind === "category" ? (category?.name ?? "") : (skuType?.name ?? "");
 
   const filename = generateFilename(
     {
       brand: brand.name,
-      isPosm,
-      typeName: isPosm ? (posmType?.name ?? "") : (category?.name ?? ""),
+      kind,
+      typeName,
       shopType: shopType.name,
     },
     capturedAt,
@@ -164,10 +175,11 @@ export async function POST(request: Request) {
     clientQueueId,
     repId: session.user.id,
     brandId: brand.id,
-    isPosm,
+    kind,
     isGoodExecution,
     categoryId: category?.id ?? null,
     posmTypeId: posmType?.id ?? null,
+    skuTypeId: skuType?.id ?? null,
     shopTypeId: shopType.id,
     gpsLat,
     gpsLng,

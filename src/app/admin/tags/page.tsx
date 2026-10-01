@@ -42,10 +42,11 @@ function TagSection({ title, type, label, items }: { title: string; type: TagTyp
 }
 
 export default async function AdminTagsPage() {
-  const [brands, categories, posmTypes, shopTypes, pendingCount] = await Promise.all([
+  const [brands, categories, posmTypes, skuTypes, shopTypes, pendingCount] = await Promise.all([
     prisma.brand.findMany({ orderBy: { name: "asc" } }),
     prisma.category.findMany({ orderBy: { name: "asc" } }),
     prisma.posmType.findMany({ orderBy: { name: "asc" } }),
+    prisma.skuType.findMany({ orderBy: { name: "asc" } }),
     prisma.shopType.findMany({ orderBy: { name: "asc" } }),
     prisma.photoRecord.count({ where: { filenameSyncPending: true } }),
   ]);
@@ -58,6 +59,7 @@ export default async function AdminTagsPage() {
         <TagSection title="Brands" type="brand" label="brand" items={brands} />
         <TagSection title="Categories" type="category" label="category" items={categories} />
         <TagSection title="POSM Types" type="posmType" label="POSM type" items={posmTypes} />
+        <TagSection title="SKU Types" type="skuType" label="SKU type" items={skuTypes} />
         <TagSection title="Shop Types" type="shopType" label="shop type" items={shopTypes} />
       </div>
     </div>

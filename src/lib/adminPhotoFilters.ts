@@ -6,7 +6,7 @@ export interface PhotoFilterParams {
   repId?: string;
   brandId?: string;
   shopTypeId?: string;
-  isPosm?: string;
+  kind?: string;
   status?: string;
   executionQuality?: string;
   shelfVacancy?: string;
@@ -23,8 +23,9 @@ export function buildPhotoWhere(params: PhotoFilterParams): Prisma.PhotoRecordWh
   if (params.repId) where.repId = params.repId;
   if (params.brandId) where.brandId = params.brandId;
   if (params.shopTypeId) where.shopTypeId = params.shopTypeId;
-  if (params.isPosm === "true") where.isPosm = true;
-  if (params.isPosm === "false") where.isPosm = false;
+  if (params.kind && ["posm", "category", "sku"].includes(params.kind)) {
+    where.kind = params.kind as Prisma.EnumPhotoKindFilter["equals"];
+  }
   if (params.status && ["pending", "uploading", "uploaded", "failed"].includes(params.status)) {
     where.status = params.status as Prisma.EnumUploadStatusFilter["equals"];
   }

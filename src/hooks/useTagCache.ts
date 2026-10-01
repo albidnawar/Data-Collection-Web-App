@@ -6,12 +6,13 @@ import type { TagType } from "@/lib/tagTypes";
 
 const PERIODIC_REFRESH_MS = 15000;
 
-type CacheKey = "brands" | "categories" | "posmTypes" | "shopTypes";
+type CacheKey = "brands" | "categories" | "posmTypes" | "skuTypes" | "shopTypes";
 
 const TYPE_TO_CACHE_KEY: Record<TagType, CacheKey> = {
   brand: "brands",
   category: "categories",
   posmType: "posmTypes",
+  skuType: "skuTypes",
   shopType: "shopTypes",
 };
 

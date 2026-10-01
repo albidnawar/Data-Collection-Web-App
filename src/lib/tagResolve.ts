@@ -15,6 +15,8 @@ function findFirstCaseInsensitive(type: TagType, name: string): Promise<TagRow |
       return prisma.category.findFirst({ where, select: { id: true, name: true } });
     case "posmType":
       return prisma.posmType.findFirst({ where, select: { id: true, name: true } });
+    case "skuType":
+      return prisma.skuType.findFirst({ where, select: { id: true, name: true } });
     case "shopType":
       return prisma.shopType.findFirst({ where, select: { id: true, name: true } });
   }
@@ -29,6 +31,8 @@ function create(type: TagType, name: string, createdById: string | null) {
       return prisma.category.create({ data });
     case "posmType":
       return prisma.posmType.create({ data });
+    case "skuType":
+      return prisma.skuType.create({ data });
     case "shopType":
       return prisma.shopType.create({ data });
   }

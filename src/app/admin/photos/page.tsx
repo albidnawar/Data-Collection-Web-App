@@ -16,7 +16,7 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
     repId: get("repId"),
     brandId: get("brandId"),
     shopTypeId: get("shopTypeId"),
-    isPosm: get("isPosm"),
+    kind: get("kind"),
     status: get("status"),
     executionQuality: get("executionQuality"),
     shelfVacancy: get("shelfVacancy"),
@@ -35,7 +35,7 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
       orderBy: { capturedAt: "desc" },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
-      include: { rep: true, brand: true, category: true, posmType: true, shopType: true },
+      include: { rep: true, brand: true, category: true, posmType: true, skuType: true, shopType: true },
     }),
   ]);
 
@@ -97,11 +97,12 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
           </select>
         </label>
         <label className="flex flex-col gap-1 text-xs text-gray-500">
-          POSM
-          <select name="isPosm" defaultValue={filters.isPosm ?? ""} className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800">
+          Kind
+          <select name="kind" defaultValue={filters.kind ?? ""} className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800">
             <option value="">All</option>
-            <option value="true">Yes</option>
-            <option value="false">No</option>
+            <option value="posm">POSM</option>
+            <option value="category">Category Shelf Display</option>
+            <option value="sku">SKU</option>
           </select>
         </label>
         <label className="flex flex-col gap-1 text-xs text-gray-500">
@@ -163,8 +164,12 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
                 </td>
                 <td className="px-3 py-2">{r.rep.name}</td>
                 <td className="px-3 py-2">{r.brand.name}</td>
-                <td className="px-3 py-2">{r.isPosm ? "POSM" : "Category Shelf Display"}</td>
-                <td className="px-3 py-2">{r.isPosm ? (r.posmType?.name ?? "-") : (r.category?.name ?? "-")}</td>
+                <td className="px-3 py-2">
+                  {r.kind === "posm" ? "POSM" : r.kind === "category" ? "Category Shelf Display" : "SKU"}
+                </td>
+                <td className="px-3 py-2">
+                  {(r.kind === "posm" ? r.posmType?.name : r.kind === "category" ? r.category?.name : r.skuType?.name) ?? "-"}
+                </td>
                 <td className="px-3 py-2">{r.shopType.name}</td>
                 <td className="px-3 py-2">
                   <span className={r.isGoodExecution ? "text-green-600" : "text-red-600"}>

@@ -1,9 +1,17 @@
+import type { PhotoKind } from "@/lib/tagTypes";
+
 export interface FilenameTags {
   brand: string;
-  isPosm: boolean;
+  kind: PhotoKind;
   typeName: string;
   shopType: string;
 }
+
+const KIND_FILENAME_PART: Record<PhotoKind, string> = {
+  posm: "POSM",
+  category: "CategoryShelfDisplay",
+  sku: "SKU",
+};
 
 export function sanitizeForFilename(value: string): string {
   const cleaned = value
@@ -35,7 +43,7 @@ function formatTime(date: Date): string {
 
 export function generateFilename(tags: FilenameTags, capturedAt: Date): string {
   const brand = sanitizeForFilename(tags.brand);
-  const kindPart = tags.isPosm ? "POSM" : "CategoryShelfDisplay";
+  const kindPart = KIND_FILENAME_PART[tags.kind];
   const typePart = sanitizeForFilename(tags.typeName);
   const shopPart = sanitizeForFilename(tags.shopType);
   const datePart = formatDate(capturedAt);
