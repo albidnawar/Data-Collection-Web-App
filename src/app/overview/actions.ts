@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { OVERVIEW_COOKIE, expectedOverviewCookieValue } from "@/lib/overviewAuth";
 
 export async function unlockOverviewAction(_prevState: string | undefined, formData: FormData) {
-  const expectedPassword = process.env.PUBLIC_OVERVIEW_PASSWORD;
+  const expectedPassword = process.env.OVERVIEW_PASSWORD;
   if (!expectedPassword) return "Public overview access is not configured on this server.";
 
   const password = formData.get("password");

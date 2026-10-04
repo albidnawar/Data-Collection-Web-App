@@ -7,7 +7,7 @@ import { OVERVIEW_COOKIE, expectedOverviewCookieValue } from "@/lib/overviewAuth
 export const dynamic = "force-dynamic";
 
 export default async function PublicOverviewPage() {
-  if (!process.env.PUBLIC_OVERVIEW_PASSWORD) {
+  if (!process.env.OVERVIEW_PASSWORD) {
     notFound();
   }
 
