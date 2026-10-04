@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getTagCache, setTagCache, addTagToCache, type TagCache, type TagOption } from "@/lib/indexedDb";
+import { getTagCache, setTagCache, addTagToCache, removeTagFromCache, type TagCache, type TagOption } from "@/lib/indexedDb";
 import type { TagType } from "@/lib/tagTypes";
 
 const PERIODIC_REFRESH_MS = 15000;
@@ -117,5 +117,11 @@ export function useTagCache() {
     [syncPendingTag],
   );
 
-  return { cache, refreshFromServer, addLocalTag };
+  const removeLocalTag = useCallback(async (type: TagType, name: string) => {
+    pendingRef.current = pendingRef.current.filter((p) => !(p.type === type && p.tag.name === name));
+    await removeTagFromCache(TYPE_TO_CACHE_KEY[type], name);
+    setCache((await getTagCache()) ?? null);
+  }, []);
+
+  return { cache, refreshFromServer, addLocalTag, removeLocalTag };
 }

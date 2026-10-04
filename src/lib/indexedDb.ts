@@ -132,3 +132,11 @@ export async function addTagToCache(type: keyof Omit<TagCache, "fetchedAt">, tag
   existing[type] = [...existing[type], tag];
   await db.put("tagCache", existing, TAG_CACHE_KEY);
 }
+
+export async function removeTagFromCache(type: keyof Omit<TagCache, "fetchedAt">, name: string) {
+  const db = await getDb();
+  const existing = await db.get("tagCache", TAG_CACHE_KEY);
+  if (!existing) return;
+  existing[type] = existing[type].filter((t) => t.name !== name);
+  await db.put("tagCache", existing, TAG_CACHE_KEY);
+}

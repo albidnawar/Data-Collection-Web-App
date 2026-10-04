@@ -121,6 +121,35 @@ export async function mergeAndDeleteTag(
   await deleteTagRow(type, deleteId);
 }
 
+/**
+ * Self-service delete for any rep, not just admins: only succeeds when the
+ * tag has zero photos attached, so it can never lose data. Used by the
+ * long-press delete gesture on a chip in the capture screen.
+ */
+export async function deleteUnusedTag(
+  type: TagType,
+  id: string,
+): Promise<{ deleted: true } | { deleted: false; count: number }> {
+  const count = await countPhotosUsingTag(type, id);
+  if (count > 0) {
+    return { deleted: false, count };
+  }
+
+  if (type === "brand") {
+    const brand = await prisma.brand.findUnique({
+      where: { id },
+      select: { driveFolderId: true, badExecutionDriveFolderId: true },
+    });
+    await deleteTagRow(type, id);
+    await deleteDriveFolderIfEmpty(brand?.driveFolderId);
+    await deleteDriveFolderIfEmpty(brand?.badExecutionDriveFolderId);
+  } else {
+    await deleteTagRow(type, id);
+  }
+
+  return { deleted: true };
+}
+
 export async function deleteTagAndAllPhotos(type: TagType, id: string): Promise<void> {
   const affected = await prisma.photoRecord.findMany({
     where: whereForType(type, id),

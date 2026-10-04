@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { findSimilarTags } from "@/lib/similarTags";
 
 export interface ChipOption {
@@ -8,12 +8,15 @@ export interface ChipOption {
   name: string;
 }
 
+type DeleteResult = { ok: true } | { ok: false; message: string };
+
 interface ChipGroupProps {
   label: string;
   options: ChipOption[];
   selected: string | null;
   onSelect: (name: string) => void;
   onAddNew: (name: string) => void;
+  onDelete: (option: ChipOption) => Promise<DeleteResult>;
 }
 
 // Above this many options, a wrapped grid turns into a lot of vertical
@@ -22,27 +25,147 @@ interface ChipGroupProps {
 // value) is still a single tap, and the long tail is a few keystrokes away.
 const SEARCH_THRESHOLD = 10;
 
-function Chip({ name, isSelected, onClick, shrink }: { name: string; isSelected: boolean; onClick: () => void; shrink?: boolean }) {
+// How long a press has to be held before it counts as "long press" instead
+// of a normal tap-to-select. Matches typical iOS/Android long-press timing.
+const LONG_PRESS_MS = 500;
+
+function Chip({
+  option,
+  isSelected,
+  isPendingDelete,
+  onClick,
+  onLongPress,
+  shrink,
+}: {
+  option: ChipOption;
+  isSelected: boolean;
+  isPendingDelete: boolean;
+  onClick: () => void;
+  onLongPress: () => void;
+  shrink?: boolean;
+}) {
+  const timerRef = useRef<number | null>(null);
+  const firedRef = useRef(false);
+
+  const clearTimer = () => {
+    if (timerRef.current !== null) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  const start = () => {
+    firedRef.current = false;
+    clearTimer();
+    timerRef.current = window.setTimeout(() => {
+      firedRef.current = true;
+      onLongPress();
+    }, LONG_PRESS_MS);
+  };
+
   return (
     <button
       type="button"
-      onClick={onClick}
-      className={`${shrink ? "shrink-0" : ""} rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
-        isSelected
-          ? "bg-blue-600 text-white"
-          : "bg-gray-100 text-gray-800 active:bg-gray-200 dark:bg-gray-800 dark:text-gray-200"
+      onClick={() => {
+        // A long press already fired its own action — don't also treat the
+        // release as a tap-to-select.
+        if (firedRef.current) {
+          firedRef.current = false;
+          return;
+        }
+        onClick();
+      }}
+      onPointerDown={start}
+      onPointerUp={clearTimer}
+      onPointerLeave={clearTimer}
+      onPointerMove={clearTimer}
+      onContextMenu={(e) => e.preventDefault()}
+      className={`${shrink ? "shrink-0" : ""} rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors select-none ${
+        isPendingDelete
+          ? "bg-red-50 text-red-700 ring-2 ring-red-500 dark:bg-red-950 dark:text-red-300"
+          : isSelected
+            ? "bg-blue-600 text-white"
+            : "bg-gray-100 text-gray-800 active:bg-gray-200 dark:bg-gray-800 dark:text-gray-200"
       }`}
     >
-      {name}
+      {option.name}
     </button>
   );
 }
 
-export function ChipGroup({ label, options, selected, onSelect, onAddNew }: ChipGroupProps) {
+function DeleteConfirmBar({
+  pending,
+  deleting,
+  error,
+  onConfirm,
+  onCancel,
+}: {
+  pending: ChipOption;
+  deleting: boolean;
+  error: string | null;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5 rounded-xl bg-red-50 p-3 dark:bg-red-950">
+      <div className="flex items-center gap-2">
+        <span className="flex-1 text-sm text-red-800 dark:text-red-200">
+          Delete &ldquo;{pending.name}&rdquo;?
+        </span>
+        <button
+          type="button"
+          disabled={deleting}
+          onClick={onConfirm}
+          className="rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+        >
+          {deleting ? "Deleting…" : "Delete"}
+        </button>
+        <button
+          type="button"
+          disabled={deleting}
+          onClick={onCancel}
+          className="rounded-lg bg-gray-200 px-3 py-2 text-sm font-medium text-gray-700 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-200"
+        >
+          Cancel
+        </button>
+      </div>
+      {error && <span className="text-xs text-red-700 dark:text-red-300">{error}</span>}
+    </div>
+  );
+}
+
+export function ChipGroup({ label, options, selected, onSelect, onAddNew, onDelete }: ChipGroupProps) {
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState("");
   const [usedExisting, setUsedExisting] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+
+  const [pendingDelete, setPendingDelete] = useState<ChipOption | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const requestDelete = (option: ChipOption) => {
+    setPendingDelete(option);
+    setDeleteError(null);
+  };
+
+  const cancelDelete = () => {
+    setPendingDelete(null);
+    setDeleteError(null);
+  };
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    setDeleteError(null);
+    const result = await onDelete(pendingDelete);
+    setDeleting(false);
+    if (result.ok) {
+      setPendingDelete(null);
+    } else {
+      setDeleteError(result.message);
+    }
+  };
 
   const { exact, suggestions } = useMemo(() => findSimilarTags(draft, options), [draft, options]);
 
@@ -129,9 +252,11 @@ export function ChipGroup({ label, options, selected, onSelect, onAddNew }: Chip
               {searchResults.map((option) => (
                 <Chip
                   key={option.name}
-                  name={option.name}
+                  option={option}
                   isSelected={selected === option.name}
+                  isPendingDelete={pendingDelete?.name === option.name}
                   onClick={() => selectFromSearch(option.name)}
+                  onLongPress={() => requestDelete(option)}
                 />
               ))}
               {!searchExact && (
@@ -165,13 +290,25 @@ export function ChipGroup({ label, options, selected, onSelect, onAddNew }: Chip
             {quickOptions.map((option) => (
               <Chip
                 key={option.name}
-                name={option.name}
+                option={option}
                 isSelected={selected === option.name}
+                isPendingDelete={pendingDelete?.name === option.name}
                 onClick={() => onSelect(option.name)}
+                onLongPress={() => requestDelete(option)}
                 shrink
               />
             ))}
           </div>
+        )}
+
+        {pendingDelete && (
+          <DeleteConfirmBar
+            pending={pendingDelete}
+            deleting={deleting}
+            error={deleteError}
+            onConfirm={confirmDelete}
+            onCancel={cancelDelete}
+          />
         )}
       </div>
     );
@@ -184,7 +321,14 @@ export function ChipGroup({ label, options, selected, onSelect, onAddNew }: Chip
       <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{label}</span>
       <div className="flex flex-wrap gap-2">
         {options.map((option) => (
-          <Chip key={option.name} name={option.name} isSelected={selected === option.name} onClick={() => onSelect(option.name)} />
+          <Chip
+            key={option.name}
+            option={option}
+            isSelected={selected === option.name}
+            isPendingDelete={pendingDelete?.name === option.name}
+            onClick={() => onSelect(option.name)}
+            onLongPress={() => requestDelete(option)}
+          />
         ))}
 
         {adding ? (
@@ -244,6 +388,16 @@ export function ChipGroup({ label, options, selected, onSelect, onAddNew }: Chip
 
       {usedExisting && (
         <span className="text-xs text-gray-500 dark:text-gray-400">Using existing &ldquo;{usedExisting}&rdquo;.</span>
+      )}
+
+      {pendingDelete && (
+        <DeleteConfirmBar
+          pending={pendingDelete}
+          deleting={deleting}
+          error={deleteError}
+          onConfirm={confirmDelete}
+          onCancel={cancelDelete}
+        />
       )}
     </div>
   );

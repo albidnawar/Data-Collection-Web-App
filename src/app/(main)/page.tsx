@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Camera } from "lucide-react";
-import { ChipGroup } from "@/components/ChipGroup";
+import { ChipGroup, type ChipOption } from "@/components/ChipGroup";
 import { ExecutionQualityToggle } from "@/components/ExecutionQualityToggle";
 import { ShelfVacancyToggle } from "@/components/ShelfVacancyToggle";
 import { TagKindToggle } from "@/components/TagKindToggle";
@@ -19,7 +19,7 @@ import type { PhotoKind, TagType } from "@/lib/tagTypes";
 
 export default function CapturePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { cache, addLocalTag } = useTagCache();
+  const { cache, addLocalTag, removeLocalTag } = useTagCache();
 
   const [photo, setPhoto] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -86,6 +86,36 @@ export default function CapturePage() {
 
   const handleAddNewTag = async (type: TagType, name: string) => {
     await addLocalTag(type, name);
+  };
+
+  const handleDeleteTag = async (
+    type: TagType,
+    option: ChipOption,
+  ): Promise<{ ok: true } | { ok: false; message: string }> => {
+    if (!option.id) return { ok: false, message: "Not saved yet — try again in a moment" };
+
+    try {
+      const res = await fetch("/api/tags", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type, id: option.id }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        return { ok: false, message: data?.error ?? "Could not delete" };
+      }
+    } catch {
+      return { ok: false, message: "Network error — try again" };
+    }
+
+    await removeLocalTag(type, option.name);
+    if (type === "brand" && brand === option.name) setBrand(null);
+    if (type === "category" && category === option.name) setCategory(null);
+    if (type === "posmType" && posmType === option.name) setPosmType(null);
+    if (type === "skuType" && skuType === option.name) setSkuType(null);
+    if (type === "shopType" && shopType === option.name) setShopType(null);
+
+    return { ok: true };
   };
 
   const canSave =
@@ -231,6 +261,7 @@ export default function CapturePage() {
         selected={brand}
         onSelect={setBrand}
         onAddNew={(name) => handleAddNewTag("brand", name)}
+        onDelete={(option) => handleDeleteTag("brand", option)}
       />
 
       <ExecutionQualityToggle isGoodExecution={isGoodExecution} onChange={setIsGoodExecution} />
@@ -244,6 +275,7 @@ export default function CapturePage() {
           selected={posmType}
           onSelect={setPosmType}
           onAddNew={(name) => handleAddNewTag("posmType", name)}
+          onDelete={(option) => handleDeleteTag("posmType", option)}
         />
       ) : kind === "category" ? (
         <ChipGroup
@@ -252,6 +284,7 @@ export default function CapturePage() {
           selected={category}
           onSelect={setCategory}
           onAddNew={(name) => handleAddNewTag("category", name)}
+          onDelete={(option) => handleDeleteTag("category", option)}
         />
       ) : (
         <ChipGroup
@@ -260,6 +293,7 @@ export default function CapturePage() {
           selected={skuType}
           onSelect={setSkuType}
           onAddNew={(name) => handleAddNewTag("skuType", name)}
+          onDelete={(option) => handleDeleteTag("skuType", option)}
         />
       )}
 
@@ -269,6 +303,7 @@ export default function CapturePage() {
         selected={shopType}
         onSelect={setShopType}
         onAddNew={(name) => handleAddNewTag("shopType", name)}
+        onDelete={(option) => handleDeleteTag("shopType", option)}
       />
 
       <div className="flex flex-col gap-2">
