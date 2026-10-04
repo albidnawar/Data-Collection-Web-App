@@ -6,6 +6,12 @@ export default auth(function proxy(req) {
   const isLoggedIn = !!req.auth;
   const isAdmin = !!req.auth?.user?.isAdmin;
 
+  // Public, password-gated read-only overview — its own access check lives
+  // in the page itself, not NextAuth, so it's exempt from every rule below.
+  if (pathname.startsWith("/overview")) {
+    return NextResponse.next();
+  }
+
   // Demo/sandbox only: silently sign in as a fixed demo account instead of
   // ever showing the login form. Inert unless DEMO_MODE is set, so production
   // is unaffected.
