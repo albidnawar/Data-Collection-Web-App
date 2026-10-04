@@ -1,5 +1,6 @@
 import { CheckCircle2 } from "lucide-react";
 import { prisma } from "@/lib/db";
+import { DemoAdminTour } from "@/components/DemoAdminTour";
 import { StatCard } from "@/components/admin/StatCard";
 import { UploadsChart, type UploadsChartPoint } from "@/components/admin/UploadsChart";
 import Link from "next/link";
@@ -123,7 +124,8 @@ export default async function AdminOverviewPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+      <DemoAdminTour />
+      <div id="tour-stat-cards" className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         <StatCard label="Uploaded today" value={totalToday} />
         <StatCard label="Uploaded this week" value={totalWeek} />
         <StatCard label="Uploaded all-time" value={totalAllTime} />
@@ -131,7 +133,9 @@ export default async function AdminOverviewPage() {
         <StatCard label="Active reps" value={activeRepsCount} />
       </div>
 
-      <UploadsChart data={chartData} />
+      <div id="tour-chart">
+        <UploadsChart data={chartData} />
+      </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">

@@ -17,6 +17,8 @@ const TABS = [
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const driveFolderId = process.env.DRIVE_ROOT_FOLDER_ID;
+
   return (
     <div className="flex min-h-dvh flex-col bg-gray-50 dark:bg-gray-950">
       <AutoRefresh />
@@ -27,6 +29,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           CamTag Admin
         </Link>
         <div className="flex items-center gap-4">
+          {driveFolderId && (
+            <a
+              id="tour-drive-link"
+              href={`https://drive.google.com/drive/folders/${driveFolderId}`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-sm font-medium text-gray-600 dark:text-gray-400"
+            >
+              View in Drive
+            </a>
+          )}
           <Link href="/" className="text-sm font-medium text-gray-600 dark:text-gray-400">
             Back to app
           </Link>
@@ -37,7 +50,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </form>
         </div>
       </header>
-      <nav className="flex gap-1 border-b border-gray-200 bg-white px-4 dark:border-gray-800 dark:bg-gray-900">
+      <nav id="tour-nav" className="flex gap-1 border-b border-gray-200 bg-white px-4 dark:border-gray-800 dark:bg-gray-900">
         {TABS.map((tab) => (
           <Link
             key={tab.href}

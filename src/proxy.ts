@@ -6,6 +6,16 @@ export default auth(function proxy(req) {
   const isLoggedIn = !!req.auth;
   const isAdmin = !!req.auth?.user?.isAdmin;
 
+  // Demo/sandbox only: silently sign in as a fixed demo account instead of
+  // ever showing the login form. Inert unless DEMO_MODE is set, so production
+  // is unaffected.
+  if (process.env.DEMO_MODE === "true" && pathname === "/auto-login") {
+    return NextResponse.next();
+  }
+  if (process.env.DEMO_MODE === "true" && !isLoggedIn) {
+    return NextResponse.redirect(new URL("/auto-login", req.url));
+  }
+
   if (pathname.startsWith("/admin")) {
     if (!isLoggedIn) {
       return NextResponse.redirect(new URL("/login", req.url));

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Camera } from "lucide-react";
 import { ChipGroup, type ChipOption } from "@/components/ChipGroup";
+import { DemoCaptureTour } from "@/components/DemoCaptureTour";
 import { ExecutionQualityToggle } from "@/components/ExecutionQualityToggle";
 import { ShelfVacancyToggle } from "@/components/ShelfVacancyToggle";
 import { TagKindToggle } from "@/components/TagKindToggle";
@@ -192,6 +193,7 @@ export default function CapturePage() {
 
   return (
     <div className="flex flex-1 flex-col gap-6 px-4 py-6">
+      <DemoCaptureTour />
       <input
         ref={fileInputRef}
         type="file"
@@ -222,28 +224,30 @@ export default function CapturePage() {
         </div>
       )}
 
-      {compressing ? (
-        <div className="flex aspect-[4/3] max-h-[45vh] w-full flex-col items-center justify-center gap-2 rounded-2xl bg-blue-600 text-white">
-          <Camera className="size-8" strokeWidth={1.75} />
-          <span className="text-lg font-semibold">Processing photo…</span>
-        </div>
-      ) : previewUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={previewUrl}
-          alt="Captured"
-          className="aspect-[4/3] max-h-[45vh] w-full rounded-2xl object-cover"
-        />
-      ) : (
-        <button
-          type="button"
-          onClick={handleTakePhoto}
-          className="flex aspect-[4/3] max-h-[45vh] w-full flex-col items-center justify-center gap-2 rounded-2xl bg-blue-600 text-white active:bg-blue-700"
-        >
-          <Camera className="size-8" strokeWidth={1.75} />
-          <span className="text-lg font-semibold">Take Photo</span>
-        </button>
-      )}
+      <div id="tour-take-photo">
+        {compressing ? (
+          <div className="flex aspect-[4/3] max-h-[45vh] w-full flex-col items-center justify-center gap-2 rounded-2xl bg-blue-600 text-white">
+            <Camera className="size-8" strokeWidth={1.75} />
+            <span className="text-lg font-semibold">Processing photo…</span>
+          </div>
+        ) : previewUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={previewUrl}
+            alt="Captured"
+            className="aspect-[4/3] max-h-[45vh] w-full rounded-2xl object-cover"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={handleTakePhoto}
+            className="flex aspect-[4/3] max-h-[45vh] w-full flex-col items-center justify-center gap-2 rounded-2xl bg-blue-600 text-white active:bg-blue-700"
+          >
+            <Camera className="size-8" strokeWidth={1.75} />
+            <span className="text-lg font-semibold">Take Photo</span>
+          </button>
+        )}
+      </div>
 
       {previewUrl && (
         <button
@@ -255,18 +259,24 @@ export default function CapturePage() {
         </button>
       )}
 
-      <ChipGroup
-        label="Brand"
-        options={brandOptions}
-        selected={brand}
-        onSelect={setBrand}
-        onAddNew={(name) => handleAddNewTag("brand", name)}
-        onDelete={(option) => handleDeleteTag("brand", option)}
-      />
+      <div id="tour-brand">
+        <ChipGroup
+          label="Brand"
+          options={brandOptions}
+          selected={brand}
+          onSelect={setBrand}
+          onAddNew={(name) => handleAddNewTag("brand", name)}
+          onDelete={(option) => handleDeleteTag("brand", option)}
+        />
+      </div>
 
-      <ExecutionQualityToggle isGoodExecution={isGoodExecution} onChange={setIsGoodExecution} />
+      <div id="tour-execution">
+        <ExecutionQualityToggle isGoodExecution={isGoodExecution} onChange={setIsGoodExecution} />
+      </div>
 
-      <TagKindToggle kind={kind} onChange={setKind} />
+      <div id="tour-kind">
+        <TagKindToggle kind={kind} onChange={setKind} />
+      </div>
 
       {kind === "posm" ? (
         <ChipGroup
@@ -297,14 +307,16 @@ export default function CapturePage() {
         />
       )}
 
-      <ChipGroup
-        label="Shop Type"
-        options={shopTypeOptions}
-        selected={shopType}
-        onSelect={setShopType}
-        onAddNew={(name) => handleAddNewTag("shopType", name)}
-        onDelete={(option) => handleDeleteTag("shopType", option)}
-      />
+      <div id="tour-shop-type">
+        <ChipGroup
+          label="Shop Type"
+          options={shopTypeOptions}
+          selected={shopType}
+          onSelect={setShopType}
+          onAddNew={(name) => handleAddNewTag("shopType", name)}
+          onDelete={(option) => handleDeleteTag("shopType", option)}
+        />
+      </div>
 
       <div className="flex flex-col gap-2">
         <label htmlFor="surroundingRemarks" className="text-sm font-medium text-gray-600 dark:text-gray-400">
@@ -347,6 +359,7 @@ export default function CapturePage() {
       )}
 
       <button
+        id="tour-save"
         type="button"
         disabled={!canSave}
         onClick={handleSave}
