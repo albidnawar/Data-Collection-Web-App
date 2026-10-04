@@ -12,7 +12,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
   const attendance = session?.user ? await getTodayAttendance(session.user.id) : null;
   const attendanceGateDisabled = process.env.DISABLE_ATTENDANCE_GATE === "true";
 
-  if (session?.user && !attendance && !attendanceGateDisabled) {
+  if (session?.user && !attendance && !attendanceGateDisabled && !session.user.isAdmin) {
     redirect("/attendance");
   }
 
