@@ -151,6 +151,12 @@ model PhotoRecord {
   // batch-fix run can resume from wherever a previous run left off.
   byteFormatCheckedAt DateTime?
 
+  // Set when that check found a problem it couldn't auto-fix (not JPEG, not
+  // HEIC, or the Drive download/conversion itself failed). Cleared once a
+  // later run confirms the file is fine, so a non-null value here always
+  // means "still needs attention" and keeps getting retried.
+  byteFormatIssue String?
+
   createdAt DateTime @default(now())
 
   @@index([brandId])
@@ -161,6 +167,7 @@ model PhotoRecord {
   @@index([isGoodExecution])
   @@index([kind])
   @@index([byteFormatCheckedAt])
+  @@index([byteFormatIssue])
 }
 
 // One row per rep per day. dateKey is a "YYYY-MM-DD" string computed in the

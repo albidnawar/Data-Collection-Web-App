@@ -1,24 +1,27 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 interface BatchResult {
   processed: number;
   fixed: number;
   alreadyOk: number;
   unknown: number;
+  empty: number;
   remaining: number;
 }
 
 export function FixCorruptedPhotosButton() {
+  const router = useRouter();
   const [running, setRunning] = useState(false);
-  const [totals, setTotals] = useState<{ checked: number; fixed: number; unknown: number } | null>(null);
+  const [totals, setTotals] = useState<{ checked: number; fixed: number; unknown: number; empty: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const run = async () => {
     setRunning(true);
     setError(null);
-    setTotals({ checked: 0, fixed: 0, unknown: 0 });
+    setTotals({ checked: 0, fixed: 0, unknown: 0, empty: 0 });
 
     try {
       let remaining = 1;
@@ -33,6 +36,7 @@ export function FixCorruptedPhotosButton() {
           checked: (prev?.checked ?? 0) + data.processed,
           fixed: (prev?.fixed ?? 0) + data.fixed,
           unknown: (prev?.unknown ?? 0) + data.unknown,
+          empty: (prev?.empty ?? 0) + data.empty,
         }));
         remaining = data.remaining;
         if (data.processed === 0) break;
@@ -41,6 +45,7 @@ export function FixCorruptedPhotosButton() {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       setRunning(false);
+      router.refresh();
     }
   };
 
@@ -57,7 +62,9 @@ export function FixCorruptedPhotosButton() {
       {totals && (
         <p className="text-xs text-gray-500 dark:text-gray-400">
           Checked {totals.checked} — fixed {totals.fixed}
+          {totals.empty > 0 ? `, ${totals.empty} empty (need retaking)` : ""}
           {totals.unknown > 0 ? `, ${totals.unknown} unreadable` : ""}
+          {totals.empty > 0 || totals.unknown > 0 ? " (see below)" : ""}
         </p>
       )}
       {error && <p className="text-xs font-medium text-red-600">{error}</p>}

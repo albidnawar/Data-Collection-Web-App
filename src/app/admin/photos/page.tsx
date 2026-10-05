@@ -26,7 +26,7 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
 
   const where = buildPhotoWhere(filters);
 
-  const [reps, brands, shopTypes, total, records] = await Promise.all([
+  const [reps, brands, shopTypes, total, records, unreadable] = await Promise.all([
     prisma.rep.findMany({ orderBy: { name: "asc" } }),
     prisma.brand.findMany({ orderBy: { name: "asc" } }),
     prisma.shopType.findMany({ orderBy: { name: "asc" } }),
@@ -37,6 +37,12 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
       include: { rep: true, brand: true, category: true, posmType: true, skuType: true, shopType: true },
+    }),
+    prisma.photoRecord.findMany({
+      where: { byteFormatIssue: { not: null } },
+      orderBy: { capturedAt: "desc" },
+      take: 50,
+      include: { rep: true, brand: true },
     }),
   ]);
 
@@ -63,6 +69,21 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
           </a>
         </div>
       </div>
+
+      {unreadable.length > 0 && (
+        <div className="rounded-xl border border-red-300 bg-red-50 p-4 text-sm dark:border-red-900 dark:bg-red-950">
+          <p className="mb-2 font-semibold text-red-800 dark:text-red-200">
+            {unreadable.length} photo{unreadable.length === 1 ? "" : "s"} couldn&apos;t be auto-fixed
+          </p>
+          <ul className="flex flex-col gap-1 text-red-800 dark:text-red-200">
+            {unreadable.map((r) => (
+              <li key={r.id}>
+                <span className="font-medium">{r.filename}</span> ({r.rep.name}, {r.brand.name}) — {r.byteFormatIssue}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <form method="get" className="flex flex-wrap gap-3 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
         <label className="flex flex-col gap-1 text-xs text-gray-500">

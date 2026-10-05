@@ -26,6 +26,9 @@ export async function POST(request: Request) {
   const lng = typeof lngRaw === "string" && lngRaw ? Number(lngRaw) : null;
   const address = typeof addressRaw === "string" && addressRaw ? addressRaw : null;
   const photoBuffer = Buffer.from(await photo.arrayBuffer());
+  if (photoBuffer.length === 0) {
+    return NextResponse.json({ error: "Photo file was empty — please retake this photo" }, { status: 400 });
+  }
 
   const params = {
     repId: session.user.id,

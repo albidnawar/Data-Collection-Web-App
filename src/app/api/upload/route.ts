@@ -207,6 +207,13 @@ export async function POST(request: Request) {
       ? await resolveOrCreateBrandFolder(brand.id, brand.name)
       : await resolveOrCreateBadExecutionBrandFolder(brand.id, brand.name);
     const fileBuffer = Buffer.from(await photo.arrayBuffer());
+    if (fileBuffer.length === 0) {
+      // Seen with photos that sat a long time in the offline queue — the
+      // browser's stored Blob reference can come back empty on read. Fail
+      // loudly instead of silently creating a 0-byte Drive file that looks
+      // like a successful upload until someone tries to open it.
+      throw new Error("Photo file was empty when uploading — please retake this photo");
+    }
     const { fileId, fileUrl } = await uploadPhotoToDrive({ folderId, filename, fileBuffer });
 
     const updated = await prisma.photoRecord.update({
