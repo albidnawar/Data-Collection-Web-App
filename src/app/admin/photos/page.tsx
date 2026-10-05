@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { buildPhotoWhere } from "@/lib/adminPhotoFilters";
 import { LocalDateTime } from "@/components/admin/LocalDateTime";
 import { DeletePhotoButton } from "@/components/admin/DeletePhotoButton";
+import { FixCorruptedPhotosButton } from "@/components/admin/FixCorruptedPhotosButton";
 
 const PAGE_SIZE = 50;
 
@@ -52,12 +53,15 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Photo log</h1>
-        <a
-          href={`/api/admin/photos?format=csv&${csvQuery}`}
-          className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white"
-        >
-          Export CSV
-        </a>
+        <div className="flex items-center gap-3">
+          <FixCorruptedPhotosButton />
+          <a
+            href={`/api/admin/photos?format=csv&${csvQuery}`}
+            className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white"
+          >
+            Export CSV
+          </a>
+        </div>
       </div>
 
       <form method="get" className="flex flex-wrap gap-3 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">

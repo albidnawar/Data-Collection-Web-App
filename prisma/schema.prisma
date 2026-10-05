@@ -145,6 +145,12 @@ model PhotoRecord {
   status       UploadStatus @default(pending)
   errorMessage String?
 
+  // Set once the Drive file's actual bytes have been verified (and fixed, if
+  // they turned out to be HEIC mislabeled as JPEG) by the admin "Fix
+  // corrupted photos" tool. Left null for anything not yet checked, so a
+  // batch-fix run can resume from wherever a previous run left off.
+  byteFormatCheckedAt DateTime?
+
   createdAt DateTime @default(now())
 
   @@index([brandId])
@@ -154,6 +160,7 @@ model PhotoRecord {
   @@index([filenameSyncPending])
   @@index([isGoodExecution])
   @@index([kind])
+  @@index([byteFormatCheckedAt])
 }
 
 // One row per rep per day. dateKey is a "YYYY-MM-DD" string computed in the

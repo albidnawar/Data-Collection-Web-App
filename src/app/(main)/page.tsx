@@ -41,6 +41,7 @@ export default function CapturePage() {
   const [otherRemarks, setOtherRemarks] = useState("");
   const [shelfVacancy, setShelfVacancy] = useState<boolean | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [compressing, setCompressing] = useState(false);
 
   const requestLocation = async () => {
@@ -69,14 +70,24 @@ export default function CapturePage() {
   const handleTakePhoto = () => fileInputRef.current?.click();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawFile = e.target.files?.[0];
+    const input = e.target;
+    const rawFile = input.files?.[0];
     if (!rawFile) return;
 
+    setError(null);
     setCapturedAt(new Date());
     setSaveMessage(null);
-
     setCompressing(true);
-    const file = await compressImageIfNeeded(rawFile);
+
+    let file: File;
+    try {
+      file = await compressImageIfNeeded(rawFile);
+    } catch (err) {
+      setCompressing(false);
+      setError(err instanceof Error ? err.message : "This photo couldn't be opened. Please retake it or choose a different one.");
+      input.value = "";
+      return;
+    }
     setCompressing(false);
 
     setPhoto(file);
@@ -352,6 +363,10 @@ export default function CapturePage() {
         <p className="text-center text-sm text-gray-500 dark:text-gray-400">
           Couldn&apos;t get a GPS fix for this photo (common indoors). It will save without a location.
         </p>
+      )}
+
+      {error && (
+        <p className="text-center text-sm font-medium text-red-600">{error}</p>
       )}
 
       {saveMessage && (

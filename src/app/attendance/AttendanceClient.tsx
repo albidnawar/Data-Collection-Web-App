@@ -70,11 +70,21 @@ export function AttendanceClient({
   const handleTakeSelfie = () => fileInputRef.current?.click();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawFile = e.target.files?.[0];
+    const input = e.target;
+    const rawFile = input.files?.[0];
     if (!rawFile) return;
     setError(null);
     setCompressing(true);
-    const file = await compressImageIfNeeded(rawFile);
+
+    let file: File;
+    try {
+      file = await compressImageIfNeeded(rawFile);
+    } catch (err) {
+      setCompressing(false);
+      setError(err instanceof Error ? err.message : "This photo couldn't be opened. Please retake it or choose a different one.");
+      input.value = "";
+      return;
+    }
     setCompressing(false);
     setPhoto(file);
     setPreviewUrl(URL.createObjectURL(file));

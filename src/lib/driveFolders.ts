@@ -206,6 +206,34 @@ export async function deleteDriveFile(fileId: string): Promise<void> {
   await drive.files.delete({ fileId });
 }
 
+export async function downloadDriveFileBytes(fileId: string): Promise<Buffer> {
+  const drive = getDriveClient();
+  const response = await drive.files.get(
+    { fileId, alt: "media" },
+    { responseType: "arraybuffer" },
+  );
+  return Buffer.from(response.data as ArrayBuffer);
+}
+
+/** Overwrites an existing Drive file's content in place, keeping the same file
+ * id/link — Drive's own revision history (kept by default for files the app
+ * owns) preserves the previous bytes, so this doesn't need its own backup. */
+export async function overwriteDriveFileContent(params: {
+  fileId: string;
+  fileBuffer: Buffer;
+  mimeType: string;
+}): Promise<void> {
+  const { Readable } = await import("node:stream");
+  const drive = getDriveClient();
+  await drive.files.update({
+    fileId: params.fileId,
+    media: {
+      mimeType: params.mimeType,
+      body: Readable.from(params.fileBuffer),
+    },
+  });
+}
+
 export async function renameAndRefileDriveFile(params: {
   fileId: string;
   newName: string;
