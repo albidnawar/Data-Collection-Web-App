@@ -37,6 +37,7 @@ model Rep {
   createdPosmTypes   PosmType[]    @relation("PosmTypeCreatedBy")
   createdSkuTypes    SkuType[]     @relation("SkuTypeCreatedBy")
   createdShopTypes   ShopType[]    @relation("ShopTypeCreatedBy")
+  createdOutlets     Outlet[]      @relation("OutletCreatedBy")
   photoRecords       PhotoRecord[]
   attendances        Attendance[]
 }
@@ -52,6 +53,26 @@ model Brand {
   createdBy     Rep?     @relation("BrandCreatedBy", fields: [createdById], references: [id])
 
   photoRecords PhotoRecord[]
+  outlets      Outlet[]
+}
+
+// A physical retail location to visit for a given brand, pinned on the rep-facing
+// map. Imported in bulk from a CSV (outlet code + lat/long) against one brand per
+// upload -- re-uploading the same code under a different brand's sheet re-tags it,
+// since an outlet belongs to exactly one brand at a time.
+model Outlet {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  lat         Float
+  lng         Float
+  active      Boolean  @default(true)
+  brandId     String
+  brand       Brand    @relation(fields: [brandId], references: [id])
+  createdAt   DateTime @default(now())
+  createdById String?
+  createdBy   Rep?     @relation("OutletCreatedBy", fields: [createdById], references: [id])
+
+  @@index([brandId])
 }
 
 model Category {
