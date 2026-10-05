@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
 
 export interface OutletPin {
   id: string;
   code: string;
+  town: string;
   lat: number;
   lng: number;
   brandId: string;
@@ -16,21 +17,35 @@ export interface OutletPin {
 const DEFAULT_CENTER = { lat: 23.8103, lng: 90.4125 };
 const DEFAULT_ZOOM = 6;
 
+// setOptions() must only be called once per page load (the loader warns and
+// ignores later calls otherwise) — React 19 Strict Mode double-invokes this
+// effect in dev, so guard it at module scope rather than per-instance state.
+let optionsSet = false;
+
 export function OutletMap({ outlets, brands }: { outlets: OutletPin[]; brands: { id: string; name: string }[] }) {
   const mapDivRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
   const [brandFilter, setBrandFilter] = useState("");
+  const [townFilter, setTownFilter] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
+  const towns = useMemo(
+    () => Array.from(new Set(outlets.map((o) => o.town))).sort((a, b) => a.localeCompare(b)),
+    [outlets],
+  );
+
   useEffect(() => {
     if (!apiKey || !mapDivRef.current) return;
     let cancelled = false;
 
-    setOptions({ key: apiKey, v: "weekly" });
+    if (!optionsSet) {
+      setOptions({ key: apiKey, v: "weekly" });
+      optionsSet = true;
+    }
     importLibrary("maps")
       .then(({ Map }) => {
         if (cancelled || !mapDivRef.current) return;
@@ -50,7 +65,9 @@ export function OutletMap({ outlets, brands }: { outlets: OutletPin[]; brands: {
     markersRef.current.forEach((m) => m.setMap(null));
     markersRef.current = [];
 
-    const visible = brandFilter ? outlets.filter((o) => o.brandId === brandFilter) : outlets;
+    const visible = outlets.filter(
+      (o) => (!brandFilter || o.brandId === brandFilter) && (!townFilter || o.town === townFilter),
+    );
     if (visible.length === 0) return;
 
     const bounds = new google.maps.LatLngBounds();
@@ -60,7 +77,7 @@ export function OutletMap({ outlets, brands }: { outlets: OutletPin[]; brands: {
       const marker = new google.maps.Marker({
         map: mapRef.current,
         position,
-        title: `${outlet.code} — ${outlet.brandName}`,
+        title: `${outlet.code} — ${outlet.brandName} (${outlet.town})`,
       });
       marker.addListener("click", () => {
         window.open(
@@ -72,7 +89,7 @@ export function OutletMap({ outlets, brands }: { outlets: OutletPin[]; brands: {
       markersRef.current.push(marker);
     }
     mapRef.current.fitBounds(bounds);
-  }, [ready, outlets, brandFilter]);
+  }, [ready, outlets, brandFilter, townFilter]);
 
   if (!apiKey) {
     return (
@@ -84,16 +101,28 @@ export function OutletMap({ outlets, brands }: { outlets: OutletPin[]; brands: {
 
   return (
     <div className="flex flex-1 flex-col gap-3 p-4">
-      <select
-        value={brandFilter}
-        onChange={(e) => setBrandFilter(e.target.value)}
-        className="self-start rounded border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800"
-      >
-        <option value="">All brands</option>
-        {brands.map((b) => (
-          <option key={b.id} value={b.id}>{b.name}</option>
-        ))}
-      </select>
+      <div className="flex flex-wrap gap-2">
+        <select
+          value={brandFilter}
+          onChange={(e) => setBrandFilter(e.target.value)}
+          className="rounded border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800"
+        >
+          <option value="">All brands</option>
+          {brands.map((b) => (
+            <option key={b.id} value={b.id}>{b.name}</option>
+          ))}
+        </select>
+        <select
+          value={townFilter}
+          onChange={(e) => setTownFilter(e.target.value)}
+          className="rounded border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800"
+        >
+          <option value="">All towns</option>
+          {towns.map((t) => (
+            <option key={t} value={t}>{t}</option>
+          ))}
+        </select>
+      </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div ref={mapDivRef} className="h-[70vh] w-full rounded-xl" />
     </div>

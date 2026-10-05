@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Outlet" ADD COLUMN "town" TEXT NOT NULL DEFAULT '';

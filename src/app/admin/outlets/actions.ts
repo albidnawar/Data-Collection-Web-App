@@ -54,12 +54,13 @@ export async function importOutletsAction(
   for (let i = 0; i < parsed.rows.length; i += UPSERT_BATCH_SIZE) {
     const batch = parsed.rows.slice(i, i + UPSERT_BATCH_SIZE);
     const values = batch.map(
-      (row) => Prisma.sql`(${randomUUID()}, ${row.code}, ${row.lat}, ${row.lng}, ${brandId}, ${adminId}, true, ${now})`,
+      (row) =>
+        Prisma.sql`(${randomUUID()}, ${row.code}, ${row.town}, ${row.lat}, ${row.lng}, ${brandId}, ${adminId}, true, ${now})`,
     );
     await prisma.$executeRaw(Prisma.sql`
-      INSERT INTO "Outlet" (id, code, lat, lng, "brandId", "createdById", active, "createdAt")
+      INSERT INTO "Outlet" (id, code, town, lat, lng, "brandId", "createdById", active, "createdAt")
       VALUES ${Prisma.join(values)}
-      ON CONFLICT (code) DO UPDATE SET lat = excluded.lat, lng = excluded.lng, "brandId" = excluded."brandId"
+      ON CONFLICT (code) DO UPDATE SET town = excluded.town, lat = excluded.lat, lng = excluded.lng, "brandId" = excluded."brandId"
     `);
   }
 

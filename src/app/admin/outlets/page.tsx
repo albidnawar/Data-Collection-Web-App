@@ -60,6 +60,7 @@ export default async function AdminOutletsPage(props: PageProps<"/admin/outlets"
           <thead className="border-b border-gray-200 text-xs uppercase text-gray-500 dark:border-gray-800">
             <tr>
               <th className="px-3 py-2">Code</th>
+              <th className="px-3 py-2">Town</th>
               <th className="px-3 py-2">Brand</th>
               <th className="px-3 py-2">Lat</th>
               <th className="px-3 py-2">Lng</th>
@@ -71,6 +72,7 @@ export default async function AdminOutletsPage(props: PageProps<"/admin/outlets"
             {outlets.map((o) => (
               <tr key={o.id} className="border-b border-gray-100 dark:border-gray-800">
                 <td className="px-3 py-2">{o.code}</td>
+                <td className="px-3 py-2">{o.town}</td>
                 <td className="px-3 py-2">{o.brand.name}</td>
                 <td className="px-3 py-2">{o.lat}</td>
                 <td className="px-3 py-2">{o.lng}</td>
@@ -88,7 +90,7 @@ export default async function AdminOutletsPage(props: PageProps<"/admin/outlets"
             ))}
             {outlets.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-3 py-6 text-center text-gray-500">
+                <td colSpan={7} className="px-3 py-6 text-center text-gray-500">
                   No outlets yet.
                 </td>
               </tr>

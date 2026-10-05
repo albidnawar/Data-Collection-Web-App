@@ -63,6 +63,7 @@ model Brand {
 model Outlet {
   id          String   @id @default(uuid())
   code        String   @unique
+  town        String
   lat         Float
   lng         Float
   active      Boolean  @default(true)

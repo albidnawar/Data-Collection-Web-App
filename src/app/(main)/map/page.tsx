@@ -10,6 +10,7 @@ export default async function MapPage() {
   const pins = outlets.map((o) => ({
     id: o.id,
     code: o.code,
+    town: o.town,
     lat: o.lat,
     lng: o.lng,
     brandId: o.brandId,

@@ -13,8 +13,9 @@ export function OutletCsvUploadForm({ brands }: { brands: { id: string; name: st
     <form action={formAction} className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
       <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Import outlets</h2>
       <p className="text-xs text-gray-500 dark:text-gray-400">
-        CSV with a header row: <code>code,lat,lng</code> (latitude/longitude also accepted). Every outlet in the file is
-        tagged with the brand you pick below — uploading the same codes again updates their coordinates and brand.
+        CSV with a header row: <code>code,town,lat,lng</code> (latitude/longitude also accepted). Every outlet in the
+        file is tagged with the brand you pick below — uploading the same codes again updates their town, coordinates,
+        and brand.
       </p>
       <div className="flex flex-wrap items-center gap-2">
         <select
