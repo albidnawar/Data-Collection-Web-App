@@ -145,7 +145,7 @@ export default function CapturePage() {
 
     await addPendingUpload({
       clientQueueId: crypto.randomUUID(),
-      photoBlob: photo,
+      photoBuffer: await photo.arrayBuffer(),
       brand: tagRef(brand),
       kind,
       isGoodExecution,

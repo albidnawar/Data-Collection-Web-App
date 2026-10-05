@@ -10,7 +10,14 @@ export interface TagRef {
 
 export interface PendingUpload {
   clientQueueId: string;
-  photoBlob: Blob;
+  // Raw bytes rather than a Blob reference — Safari/WebKit has a known bug
+  // where a Blob stored in IndexedDB can read back empty after the photo
+  // sits queued for a while (phone locked, backgrounded, low storage).
+  // Plain binary data survives the IndexedDB round-trip reliably.
+  photoBuffer: ArrayBuffer;
+  // Present only on records queued by an older app version, before this
+  // field was renamed — read as a fallback, never written anymore.
+  photoBlob?: Blob;
   brand: TagRef;
   kind: PhotoKind;
   isGoodExecution: boolean;
@@ -75,6 +82,15 @@ function getDb() {
     });
   }
   return dbPromise;
+}
+
+/** Reconstructs a Blob from a queued upload, preferring the modern
+ * `photoBuffer` field and falling back to `photoBlob` for records queued
+ * by an older app version before that field was renamed. */
+export function pendingUploadToBlob(upload: PendingUpload): Blob {
+  if (upload.photoBuffer) return new Blob([upload.photoBuffer], { type: "image/jpeg" });
+  if (upload.photoBlob) return upload.photoBlob;
+  throw new Error("No photo data found for this queued upload");
 }
 
 export async function addPendingUpload(upload: PendingUpload) {

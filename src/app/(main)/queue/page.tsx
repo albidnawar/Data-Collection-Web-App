@@ -3,10 +3,10 @@
 import { useEffect, useMemo } from "react";
 import { usePendingQueue } from "@/hooks/usePendingQueue";
 import { retryUpload } from "@/lib/syncQueue";
-import type { PendingUpload } from "@/lib/indexedDb";
+import { pendingUploadToBlob, type PendingUpload } from "@/lib/indexedDb";
 
 function QueueItem({ item }: { item: PendingUpload }) {
-  const previewUrl = useMemo(() => URL.createObjectURL(item.photoBlob), [item.photoBlob]);
+  const previewUrl = useMemo(() => URL.createObjectURL(pendingUploadToBlob(item)), [item]);
 
   useEffect(() => () => URL.revokeObjectURL(previewUrl), [previewUrl]);
 

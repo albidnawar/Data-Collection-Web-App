@@ -1,5 +1,6 @@
 import {
   getAllPendingUploads,
+  pendingUploadToBlob,
   removePendingUpload,
   updatePendingUpload,
   type PendingUpload,
@@ -31,7 +32,7 @@ function buildFormData(upload: PendingUpload): FormData {
   if (upload.otherRemarks) formData.set("otherRemarks", upload.otherRemarks);
   if (upload.shelfVacancy !== null) formData.set("shelfVacancy", String(upload.shelfVacancy));
   formData.set("capturedAt", upload.capturedAt);
-  formData.set("photo", upload.photoBlob, "photo.jpg");
+  formData.set("photo", pendingUploadToBlob(upload), "photo.jpg");
   return formData;
 }
 
