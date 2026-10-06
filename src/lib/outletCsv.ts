@@ -25,7 +25,10 @@ function findColumn(headers: string[], candidates: string[]): number {
  * values with no embedded commas/quotes, which is all outlet data ever needs.
  * Invalid rows are skipped and counted, not fatal. */
 export function parseOutletCsv(text: string): ParsedOutletCsv {
-  const lines = text.split(/\r\n|\r|\n/).map((line) => line.trim());
+  // Strip a leading UTF-8 BOM — Excel on Windows adds one by default when
+  // saving as CSV, and it would otherwise corrupt the first header's name.
+  const cleaned = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+  const lines = cleaned.split(/\r\n|\r|\n/).map((line) => line.trim());
   const nonEmpty = lines.filter((line) => line.length > 0);
   if (nonEmpty.length === 0) return { rows: [], skipped: 0 };
 
