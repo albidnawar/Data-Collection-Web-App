@@ -62,3 +62,25 @@ export function parseOutletCsv(text: string): ParsedOutletCsv {
 
   return { rows, skipped };
 }
+
+/** Extracts just outlet codes, for the "delete outlets by CSV" flow. Accepts
+ * either the full code,town,lat,lng sheet (other columns are ignored) or a
+ * bare list of codes with no header at all — one per line, or as the first
+ * column if there happen to be more. Blank lines are skipped. Does not
+ * dedupe; callers don't need distinct codes to safely delete by them. */
+export function parseOutletCodesCsv(text: string): string[] {
+  const cleaned = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+  const lines = cleaned.split(/\r\n|\r|\n/).map((line) => line.trim());
+  const nonEmpty = lines.filter((line) => line.length > 0);
+  if (nonEmpty.length === 0) return [];
+
+  const firstCols = nonEmpty[0].split(",").map((c) => c.trim().toLowerCase());
+  const headerCodeIdx = findColumn(firstCols, CODE_HEADERS);
+  const hasHeader = headerCodeIdx !== -1;
+  const codeIdx = hasHeader ? headerCodeIdx : 0;
+  const dataLines = hasHeader ? nonEmpty.slice(1) : nonEmpty;
+
+  return dataLines
+    .map((line) => line.split(",")[codeIdx]?.trim())
+    .filter((code): code is string => !!code);
+}

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { OutletCsvUploadForm } from "@/components/admin/OutletCsvUploadForm";
 import { DeleteOutletButton } from "@/components/admin/DeleteOutletButton";
+import { DeleteBrandOutletsControl } from "@/components/admin/DeleteBrandOutletsControl";
+import { DeleteOutletsCsvForm } from "@/components/admin/DeleteOutletsCsvForm";
 import { toggleOutletActiveAction } from "./actions";
 
 export const maxDuration = 60;
@@ -17,8 +19,9 @@ export default async function AdminOutletsPage(props: PageProps<"/admin/outlets"
 
   const where = brandId ? { brandId } : {};
 
-  const [brands, total, outlets] = await Promise.all([
+  const [brands, allBrands, total, outlets] = await Promise.all([
     prisma.brand.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
+    prisma.brand.findMany({ orderBy: { name: "asc" } }),
     prisma.outlet.count({ where }),
     prisma.outlet.findMany({
       where,
@@ -41,6 +44,13 @@ export default async function AdminOutletsPage(props: PageProps<"/admin/outlets"
       <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Outlets</h1>
 
       <OutletCsvUploadForm brands={brands} />
+
+      <div className="flex flex-col gap-4 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Delete outlets</h2>
+        <DeleteBrandOutletsControl brands={allBrands} />
+        <div className="border-t border-gray-100 dark:border-gray-800" />
+        <DeleteOutletsCsvForm />
+      </div>
 
       <form method="get" className="flex items-center gap-2">
         <label className="flex flex-col gap-1 text-xs text-gray-500">

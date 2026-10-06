@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { Prisma } from "@/generated/prisma/client";
-import { parseOutletCsv } from "@/lib/outletCsv";
+import { parseOutletCodesCsv, parseOutletCsv } from "@/lib/outletCsv";
 
 const UPSERT_BATCH_SIZE = 500;
 
@@ -112,4 +112,58 @@ export async function deleteOutletAction(id: string) {
   await prisma.outlet.delete({ where: { id } });
   revalidatePath("/admin/outlets");
   revalidatePath("/map");
+}
+
+export async function countOutletsForBrandAction(brandId: string): Promise<number> {
+  await requireAdminId();
+  return prisma.outlet.count({ where: { brandId } });
+}
+
+export async function deleteOutletsByBrandAction(brandId: string): Promise<void> {
+  await requireAdminId();
+  await prisma.outlet.deleteMany({ where: { brandId } });
+  revalidatePath("/admin/outlets");
+  revalidatePath("/map");
+}
+
+export interface DeleteOutletsByCsvResult {
+  ok: boolean;
+  message: string;
+}
+
+export async function deleteOutletsByCsvAction(
+  _prevState: DeleteOutletsByCsvResult | undefined,
+  formData: FormData,
+): Promise<DeleteOutletsByCsvResult> {
+  await requireAdminId();
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false, message: "Choose a CSV file." };
+  }
+
+  let codes: string[];
+  try {
+    codes = parseOutletCodesCsv(await file.text());
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : "Could not parse that CSV." };
+  }
+
+  if (codes.length === 0) {
+    return { ok: false, message: "No outlet codes found in that file." };
+  }
+
+  const uniqueCodes = Array.from(new Set(codes));
+  const result = await prisma.outlet.deleteMany({ where: { code: { in: uniqueCodes } } });
+
+  revalidatePath("/admin/outlets");
+  revalidatePath("/map");
+
+  const notFound = uniqueCodes.length - result.count;
+  const note = notFound > 0 ? `, ${notFound} code${notFound === 1 ? "" : "s"} didn't match any outlet` : "";
+
+  return {
+    ok: true,
+    message: `Deleted ${result.count} outlet${result.count === 1 ? "" : "s"}${note}.`,
+  };
 }
