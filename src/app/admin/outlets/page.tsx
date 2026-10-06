@@ -4,6 +4,8 @@ import { OutletCsvUploadForm } from "@/components/admin/OutletCsvUploadForm";
 import { DeleteOutletButton } from "@/components/admin/DeleteOutletButton";
 import { toggleOutletActiveAction } from "./actions";
 
+export const maxDuration = 60;
+
 const PAGE_SIZE = 50;
 
 export default async function AdminOutletsPage(props: PageProps<"/admin/outlets">) {

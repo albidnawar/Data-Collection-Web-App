@@ -7,8 +7,6 @@ import { prisma } from "@/lib/db";
 import { Prisma } from "@/generated/prisma/client";
 import { parseOutletCsv } from "@/lib/outletCsv";
 
-export const maxDuration = 60;
-
 const UPSERT_BATCH_SIZE = 500;
 
 async function requireAdminId(): Promise<string> {
