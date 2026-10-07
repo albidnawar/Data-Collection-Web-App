@@ -27,12 +27,17 @@ export function OutletMap({ outlets, brands }: { outlets: OutletPin[]; brands: {
   const mapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
   const searchMarkerRef = useRef<google.maps.Marker | null>(null);
+  const locationMarkerRef = useRef<google.maps.Marker | null>(null);
+  const locationWatchIdRef = useRef<number | null>(null);
+  const locationCenteredRef = useRef(false);
   const [brandFilter, setBrandFilter] = useState("");
   const [townFilter, setTownFilter] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [showingLocation, setShowingLocation] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -111,6 +116,79 @@ export function OutletMap({ outlets, brands }: { outlets: OutletPin[]; brands: {
     mapRef.current.setZoom(16);
   };
 
+  useEffect(() => {
+    return () => {
+      if (locationWatchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(locationWatchIdRef.current);
+      }
+    };
+  }, []);
+
+  const stopLiveLocation = () => {
+    if (locationWatchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(locationWatchIdRef.current);
+      locationWatchIdRef.current = null;
+    }
+    locationMarkerRef.current?.setMap(null);
+    locationMarkerRef.current = null;
+    locationCenteredRef.current = false;
+    setShowingLocation(false);
+  };
+
+  const startLiveLocation = () => {
+    setLocationError(null);
+    if (!navigator.geolocation) {
+      setLocationError("This browser doesn't support location.");
+      return;
+    }
+    setShowingLocation(true);
+    locationWatchIdRef.current = navigator.geolocation.watchPosition(
+      (position) => {
+        if (!mapRef.current) return;
+        const pos = { lat: position.coords.latitude, lng: position.coords.longitude };
+        if (!locationMarkerRef.current) {
+          locationMarkerRef.current = new google.maps.Marker({
+            map: mapRef.current,
+            position: pos,
+            title: "Your location",
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 8,
+              fillColor: "#1a73e8",
+              fillOpacity: 1,
+              strokeColor: "#ffffff",
+              strokeWeight: 2,
+            },
+          });
+        } else {
+          locationMarkerRef.current.setPosition(pos);
+        }
+        if (!locationCenteredRef.current) {
+          mapRef.current.panTo(pos);
+          mapRef.current.setZoom(16);
+          locationCenteredRef.current = true;
+        }
+      },
+      (err) => {
+        setLocationError(
+          err.code === err.PERMISSION_DENIED
+            ? "Location permission was denied."
+            : "Couldn't get your location.",
+        );
+        stopLiveLocation();
+      },
+      { enableHighAccuracy: true },
+    );
+  };
+
+  const toggleLiveLocation = () => {
+    if (showingLocation) {
+      stopLiveLocation();
+    } else {
+      startLiveLocation();
+    }
+  };
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setSearchError(null);
@@ -185,8 +263,16 @@ export function OutletMap({ outlets, brands }: { outlets: OutletPin[]; brands: {
         >
           Search
         </button>
+        <button
+          type="button"
+          onClick={toggleLiveLocation}
+          className="rounded border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 dark:border-gray-700 dark:text-gray-200"
+        >
+          {showingLocation ? "Hide my location" : "Show my location"}
+        </button>
       </form>
       {searchError && <p className="text-sm text-red-600">{searchError}</p>}
+      {locationError && <p className="text-sm text-red-600">{locationError}</p>}
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div ref={mapDivRef} className="h-[70vh] w-full rounded-xl" />
     </div>
