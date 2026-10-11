@@ -6,6 +6,7 @@ import { DeletePhotoButton } from "@/components/admin/DeletePhotoButton";
 import { FixCorruptedPhotosButton } from "@/components/admin/FixCorruptedPhotosButton";
 import { PhotoThumbnail } from "@/components/admin/PhotoThumbnail";
 import { PhotoTagsCells } from "@/components/admin/PhotoTagsCells";
+import { PhotoLightboxProvider } from "@/components/admin/PhotoLightbox";
 
 const PAGE_SIZE = 50;
 
@@ -166,6 +167,7 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
         </button>
       </form>
 
+      <PhotoLightboxProvider photos={records.map((r) => ({ id: r.id, filename: r.filename }))}>
       <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
         <table className="w-full text-left text-sm">
           <thead className="border-b border-gray-200 text-xs uppercase text-gray-500 dark:border-gray-800">
@@ -270,6 +272,7 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
           </tbody>
         </table>
       </div>
+      </PhotoLightboxProvider>
 
       <div className="flex items-center justify-between text-sm text-gray-500">
         <span>
