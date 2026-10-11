@@ -11,6 +11,8 @@ export const dynamic = "force-dynamic";
 const TABS = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/photos", label: "Photos" },
+  { href: "/admin/category-shelf-display", label: "Category Shelf Display" },
+  { href: "/admin/posm", label: "POSM" },
   { href: "/admin/attendance", label: "Attendance" },
   { href: "/admin/reps", label: "Reps" },
   { href: "/admin/tags", label: "Tags" },
