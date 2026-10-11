@@ -4,6 +4,8 @@ import { buildPhotoWhere } from "@/lib/adminPhotoFilters";
 import { LocalDateTime } from "@/components/admin/LocalDateTime";
 import { DeletePhotoButton } from "@/components/admin/DeletePhotoButton";
 import { FixCorruptedPhotosButton } from "@/components/admin/FixCorruptedPhotosButton";
+import { PhotoThumbnail } from "@/components/admin/PhotoThumbnail";
+import { PhotoTagsCells } from "@/components/admin/PhotoTagsCells";
 
 const PAGE_SIZE = 50;
 
@@ -26,10 +28,13 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
 
   const where = buildPhotoWhere(filters);
 
-  const [reps, brands, shopTypes, total, records, unreadable] = await Promise.all([
+  const [reps, brands, shopTypes, categories, posmTypes, skuTypes, total, records, unreadable] = await Promise.all([
     prisma.rep.findMany({ orderBy: { name: "asc" } }),
     prisma.brand.findMany({ orderBy: { name: "asc" } }),
     prisma.shopType.findMany({ orderBy: { name: "asc" } }),
+    prisma.category.findMany({ orderBy: { name: "asc" } }),
+    prisma.posmType.findMany({ orderBy: { name: "asc" } }),
+    prisma.skuType.findMany({ orderBy: { name: "asc" } }),
     prisma.photoRecord.count({ where }),
     prisma.photoRecord.findMany({
       where,
@@ -165,13 +170,15 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
         <table className="w-full text-left text-sm">
           <thead className="border-b border-gray-200 text-xs uppercase text-gray-500 dark:border-gray-800">
             <tr>
+              <th className="px-3 py-2">Photo</th>
               <th className="px-3 py-2">Captured</th>
               <th className="px-3 py-2">Rep</th>
-              <th className="px-3 py-2">Brand</th>
               <th className="px-3 py-2">Kind</th>
+              <th className="px-3 py-2">Brand</th>
               <th className="px-3 py-2">Type</th>
               <th className="px-3 py-2">Shop type</th>
               <th className="px-3 py-2">Execution</th>
+              <th className="px-3 py-2">Edit</th>
               <th className="px-3 py-2">Shelf Vacancy</th>
               <th className="px-3 py-2">Surrounding Remarks</th>
               <th className="px-3 py-2">Other Remarks</th>
@@ -182,25 +189,39 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
             </tr>
           </thead>
           <tbody>
-            {records.map((r) => (
+            {records.map((r) => {
+              const typeId =
+                r.kind === "posm" ? r.posmTypeId : r.kind === "category" ? r.categoryId : r.skuTypeId;
+              const typeName =
+                r.kind === "posm" ? r.posmType?.name : r.kind === "category" ? r.category?.name : r.skuType?.name;
+              const typeOptions = r.kind === "posm" ? posmTypes : r.kind === "category" ? categories : skuTypes;
+
+              return (
               <tr key={r.id} className="border-b border-gray-100 dark:border-gray-800">
+                <td className="px-3 py-2">
+                  <PhotoThumbnail photoId={r.id} hasFile={!!r.driveFileId} />
+                </td>
                 <td className="px-3 py-2 whitespace-nowrap">
                   <LocalDateTime iso={r.capturedAt.toISOString()} />
                 </td>
                 <td className="px-3 py-2">{r.rep.name}</td>
-                <td className="px-3 py-2">{r.brand.name}</td>
                 <td className="px-3 py-2">
                   {r.kind === "posm" ? "POSM" : r.kind === "category" ? "Category Shelf Display" : "SKU"}
                 </td>
-                <td className="px-3 py-2">
-                  {(r.kind === "posm" ? r.posmType?.name : r.kind === "category" ? r.category?.name : r.skuType?.name) ?? "-"}
-                </td>
-                <td className="px-3 py-2">{r.shopType.name}</td>
-                <td className="px-3 py-2">
-                  <span className={r.isGoodExecution ? "text-green-600" : "text-red-600"}>
-                    {r.isGoodExecution ? "Good" : "Bad"}
-                  </span>
-                </td>
+                <PhotoTagsCells
+                  photoId={r.id}
+                  kind={r.kind}
+                  brandId={r.brandId}
+                  brandName={r.brand.name}
+                  typeId={typeId ?? null}
+                  typeName={typeName ?? null}
+                  shopTypeId={r.shopTypeId}
+                  shopTypeName={r.shopType.name}
+                  isGoodExecution={r.isGoodExecution}
+                  brands={brands}
+                  shopTypes={shopTypes}
+                  typeOptions={typeOptions}
+                />
                 <td className="px-3 py-2">
                   {r.shelfVacancy === true ? "Yes" : r.shelfVacancy === false ? "No" : "-"}
                 </td>
@@ -237,10 +258,11 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
                   <DeletePhotoButton id={r.id} />
                 </td>
               </tr>
-            ))}
+              );
+            })}
             {records.length === 0 && (
               <tr>
-                <td colSpan={14} className="px-3 py-6 text-center text-gray-500">
+                <td colSpan={16} className="px-3 py-6 text-center text-gray-500">
                   No photos match these filters.
                 </td>
               </tr>
