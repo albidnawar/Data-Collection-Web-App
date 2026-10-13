@@ -67,6 +67,12 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
         <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Photo log</h1>
         <div className="flex items-center gap-3">
           <FixCorruptedPhotosButton />
+          <Link
+            href="/admin/photos/map"
+            className="rounded-lg bg-gray-200 px-3 py-2 text-sm font-medium text-gray-900 dark:bg-gray-800 dark:text-gray-100"
+          >
+            Map
+          </Link>
           <a
             href={`/api/admin/photos?format=csv&${csvQuery}`}
             className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white"
