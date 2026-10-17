@@ -43,7 +43,13 @@ export function PhotoMap({ pins, brands }: { pins: PhotoPin[]; brands: { id: str
   const mapRef = useRef<google.maps.Map | null>(null);
   const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
+  const brandPickerRef = useRef<HTMLDivElement>(null);
+
   const [selectedBrandIds, setSelectedBrandIds] = useState<string[]>([]);
+  const [brandQuery, setBrandQuery] = useState("");
+  const [brandMenuOpen, setBrandMenuOpen] = useState(false);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
 
@@ -77,13 +83,47 @@ export function PhotoMap({ pins, brands }: { pins: PhotoPin[]; brands: { id: str
     };
   }, [apiKey]);
 
+  // Close the brand search dropdown on an outside click.
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (brandPickerRef.current && !brandPickerRef.current.contains(e.target as Node)) {
+        setBrandMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const dateFilteredPins = useMemo(() => {
+    if (!dateFrom && !dateTo) return pins;
+    const fromTime = dateFrom ? new Date(dateFrom).getTime() : null;
+    const toTime = dateTo ? new Date(`${dateTo}T23:59:59.999Z`).getTime() : null;
+    return pins.filter((p) => {
+      const t = new Date(p.capturedAt).getTime();
+      if (fromTime !== null && t < fromTime) return false;
+      if (toTime !== null && t > toTime) return false;
+      return true;
+    });
+  }, [pins, dateFrom, dateTo]);
+
+  const brandCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const p of dateFilteredPins) counts.set(p.brandId, (counts.get(p.brandId) ?? 0) + 1);
+    return counts;
+  }, [dateFilteredPins]);
+
+  const filteredBrandOptions = useMemo(() => {
+    const q = brandQuery.trim().toLowerCase();
+    return q ? brands.filter((b) => b.name.toLowerCase().includes(q)) : brands;
+  }, [brands, brandQuery]);
+
   useEffect(() => {
     if (!ready || !mapRef.current) return;
 
     markersRef.current.forEach((m) => m.setMap(null));
     markersRef.current = [];
 
-    const visible = pins.filter((p) => selectedBrandIds.includes(p.brandId));
+    const visible = dateFilteredPins.filter((p) => selectedBrandIds.includes(p.brandId));
     if (visible.length === 0) return;
 
     const bounds = new google.maps.LatLngBounds();
@@ -116,7 +156,7 @@ export function PhotoMap({ pins, brands }: { pins: PhotoPin[]; brands: { id: str
       markersRef.current.push(marker);
     }
     mapRef.current.fitBounds(bounds);
-  }, [ready, pins, selectedBrandIds, brandColor]);
+  }, [ready, dateFilteredPins, selectedBrandIds, brandColor]);
 
   const toggleBrand = (id: string) => {
     setSelectedBrandIds((prev) => (prev.includes(id) ? prev.filter((b) => b !== id) : [...prev, id]));
@@ -132,39 +172,123 @@ export function PhotoMap({ pins, brands }: { pins: PhotoPin[]; brands: { id: str
 
   return (
     <div className="flex flex-1 flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="flex flex-col gap-1 text-xs text-gray-500">
+          From
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs text-gray-500">
+          To
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800"
+          />
+        </label>
+        {(dateFrom || dateTo) && (
+          <button
+            type="button"
+            onClick={() => {
+              setDateFrom("");
+              setDateTo("");
+            }}
+            className="rounded border border-gray-300 px-2 py-1.5 text-xs font-medium text-gray-700 dark:border-gray-700 dark:text-gray-200"
+          >
+            Clear dates
+          </button>
+        )}
         <button
           type="button"
           onClick={() => setSelectedBrandIds(brands.map((b) => b.id))}
-          className="rounded border border-gray-300 px-2 py-1 text-xs font-medium text-gray-700 dark:border-gray-700 dark:text-gray-200"
+          className="rounded border border-gray-300 px-2 py-1.5 text-xs font-medium text-gray-700 dark:border-gray-700 dark:text-gray-200"
         >
-          Select all
+          Select all brands
         </button>
         <button
           type="button"
           onClick={() => setSelectedBrandIds([])}
-          className="rounded border border-gray-300 px-2 py-1 text-xs font-medium text-gray-700 dark:border-gray-700 dark:text-gray-200"
+          className="rounded border border-gray-300 px-2 py-1.5 text-xs font-medium text-gray-700 dark:border-gray-700 dark:text-gray-200"
         >
-          Clear
+          Clear brands
         </button>
       </div>
-      <div className="flex flex-wrap gap-3">
-        {brands.map((b) => {
-          const color = brandColor.get(b.id) ?? "red";
-          const count = pins.filter((p) => p.brandId === b.id).length;
-          return (
-            <label key={b.id} className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-200">
-              <input type="checkbox" checked={selectedBrandIds.includes(b.id)} onChange={() => toggleBrand(b.id)} />
-              <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: DOT_HEX[color] }} />
-              {b.name} ({count})
-            </label>
-          );
-        })}
-        {brands.length === 0 && <p className="text-sm text-gray-500 dark:text-gray-400">No brands yet.</p>}
+
+      <div ref={brandPickerRef} className="flex flex-col gap-2">
+        {selectedBrandIds.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {selectedBrandIds.map((id) => {
+              const b = brands.find((x) => x.id === id);
+              if (!b) return null;
+              const color = brandColor.get(id) ?? "red";
+              return (
+                <span
+                  key={id}
+                  className="flex items-center gap-1.5 rounded-full border border-gray-300 px-2 py-1 text-xs text-gray-700 dark:border-gray-700 dark:text-gray-200"
+                >
+                  <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: DOT_HEX[color] }} />
+                  {b.name}
+                  <button
+                    type="button"
+                    onClick={() => toggleBrand(id)}
+                    className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-100"
+                    aria-label={`Remove ${b.name}`}
+                  >
+                    ×
+                  </button>
+                </span>
+              );
+            })}
+          </div>
+        )}
+        <div className="relative w-72">
+          <input
+            type="text"
+            value={brandQuery}
+            onChange={(e) => setBrandQuery(e.target.value)}
+            onFocus={() => setBrandMenuOpen(true)}
+            placeholder="Search and select brands..."
+            className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800"
+          />
+          {brandMenuOpen && (
+            <div className="absolute left-0 top-full z-10 mt-1 max-h-64 w-full overflow-y-auto rounded border border-gray-300 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
+              {filteredBrandOptions.length === 0 && (
+                <p className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">No matching brands.</p>
+              )}
+              {filteredBrandOptions.map((b) => {
+                const color = brandColor.get(b.id) ?? "red";
+                const selected = selectedBrandIds.includes(b.id);
+                const count = brandCounts.get(b.id) ?? 0;
+                return (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => toggleBrand(b.id)}
+                    className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                      selected ? "bg-gray-50 dark:bg-gray-900" : ""
+                    }`}
+                  >
+                    <input type="checkbox" checked={selected} readOnly className="pointer-events-none" />
+                    <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: DOT_HEX[color] }} />
+                    <span className="flex-1 text-gray-700 dark:text-gray-200">{b.name}</span>
+                    <span className="text-xs text-gray-400">{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
+
       {selectedBrandIds.length === 0 && (
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Select one or more brands above to see their photo locations.
+          Search and select one or more brands above to see their photo locations.
         </p>
       )}
       {error && <p className="text-sm text-red-600">{error}</p>}
