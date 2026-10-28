@@ -63,6 +63,7 @@ export function CaptureForm({ requiresOutletCapture }: { requiresOutletCapture: 
   const [outletCompressing, setOutletCompressing] = useState(false);
   const [savingOutlet, setSavingOutlet] = useState(false);
   const [outletError, setOutletError] = useState<string | null>(null);
+  const [savingPhoto, setSavingPhoto] = useState(false);
 
   const requestLocation = async () => {
     setLocatingGps(true);
@@ -244,7 +245,8 @@ export function CaptureForm({ requiresOutletCapture }: { requiresOutletCapture: 
     (kind === "posm" ? posmType !== null : kind === "category" ? category !== null : skuType !== null);
 
   const handleSave = async () => {
-    if (!canSave || !photo || !capturedAt || !brand || !shopType || isGoodExecution === null) return;
+    if (savingPhoto || !canSave || !photo || !capturedAt || !brand || !shopType || isGoodExecution === null) return;
+    setSavingPhoto(true);
 
     await addPendingUpload({
       clientQueueId: crypto.randomUUID(),
@@ -295,6 +297,7 @@ export function CaptureForm({ requiresOutletCapture }: { requiresOutletCapture: 
     setSurroundingRemarks("");
     setOtherRemarks("");
     setShelfVacancy(null);
+    setSavingPhoto(false);
     // Smart defaults: brand and shop type carry forward since reps usually
     // shoot several photos of the same brand/shop in a row. Location is always
     // re-detected fresh per photo, never carried over. Execution quality,
@@ -573,11 +576,11 @@ export function CaptureForm({ requiresOutletCapture }: { requiresOutletCapture: 
       <button
         id="tour-save"
         type="button"
-        disabled={!canSave}
+        disabled={!canSave || savingPhoto}
         onClick={handleSave}
         className="rounded-2xl bg-green-600 py-4 text-lg font-semibold text-white disabled:opacity-40"
       >
-        {locatingGps ? "Locating…" : "Save & Next Photo"}
+        {locatingGps ? "Locating…" : savingPhoto ? "Saving…" : "Save & Next Photo"}
       </button>
     </div>
   );
