@@ -38,6 +38,7 @@ export function AddRepForm() {
         >
           <option value="rep">Rep</option>
           <option value="admin">Admin</option>
+          <option value="pran">Pran</option>
         </select>
       </label>
       <button

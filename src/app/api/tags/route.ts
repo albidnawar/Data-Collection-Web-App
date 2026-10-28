@@ -12,7 +12,7 @@ export async function GET() {
   }
 
   const [brands, categories, posmTypes, skuTypes, shopTypes] = await Promise.all([
-    prisma.brand.findMany({ where: { active: true }, select: { id: true, name: true, requiresOutletPhoto: true } }),
+    prisma.brand.findMany({ where: { active: true }, select: { id: true, name: true } }),
     prisma.category.findMany({ where: { active: true }, select: { id: true, name: true } }),
     prisma.posmType.findMany({ where: { active: true }, select: { id: true, name: true } }),
     prisma.skuType.findMany({ where: { active: true }, select: { id: true, name: true } }),

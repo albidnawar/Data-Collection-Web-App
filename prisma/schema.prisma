@@ -24,6 +24,18 @@ enum PhotoKind {
   outlet
 }
 
+// A rep's account role. "pran" reps get the same capture flow as any other
+// rep, but must additionally capture an outlet outside photo and name once
+// per outlet visit before saving any SKU/POSM/category photo (see
+// Rep.role and PhotoRecord.outletName). isAdmin is kept in sync with this
+// (true only for role "admin") so existing admin-gating code can keep
+// reading it unchanged.
+enum RepRole {
+  rep
+  admin
+  pran
+}
+
 model Rep {
   id           String   @id @default(uuid())
   name         String
@@ -31,6 +43,7 @@ model Rep {
   passwordHash String
   active       Boolean  @default(true)
   isAdmin      Boolean  @default(false)
+  role         RepRole  @default(rep)
   createdAt    DateTime @default(now())
 
   createdBrands      Brand[]       @relation("BrandCreatedBy")
@@ -49,10 +62,6 @@ model Brand {
   driveFolderId             String?
   badExecutionDriveFolderId String?
   active                    Boolean  @default(true)
-  // When set, the capture app requires reps to take an outside/storefront
-  // photo and name the outlet once per outlet visit before they can save any
-  // SKU/POSM/category photo for this brand.
-  requiresOutletPhoto Boolean  @default(false)
   createdAt     DateTime @default(now())
   createdById   String?
   createdBy     Rep?     @relation("BrandCreatedBy", fields: [createdById], references: [id])
@@ -153,9 +162,9 @@ model PhotoRecord {
 
   shopName String?
 
-  // Free-text outlet name, captured once per outlet visit for brands with
-  // Brand.requiresOutletPhoto set and carried onto every photo taken at that
-  // outlet (including the outlet's own outside/storefront photo, kind "outlet").
+  // Free-text outlet name, captured once per outlet visit by reps with
+  // Rep.role "pran" and carried onto every photo taken at that outlet
+  // (including the outlet's own outside/storefront photo, kind "outlet").
   outletName String?
 
   gpsLat  Float?

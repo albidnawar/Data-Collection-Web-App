@@ -25,10 +25,9 @@ export interface PendingUpload {
   posmType: TagRef | null;
   skuType: TagRef | null;
   shopType: TagRef;
-  // Carried over from the outlet capture step (brands with requiresOutletPhoto)
-  // and attached to every photo taken at that outlet, including the outlet's
-  // own outside/storefront photo (kind "outlet"). Null for brands that don't
-  // require this step.
+  // Carried over from the outlet capture step (reps with role "pran") and
+  // attached to every photo taken at that outlet, including the outlet's own
+  // outside/storefront photo (kind "outlet"). Null for other reps.
   outletName: string | null;
   gpsLat: number | null;
   gpsLng: number | null;
@@ -48,12 +47,8 @@ export interface TagOption {
   name: string;
 }
 
-export interface BrandOption extends TagOption {
-  requiresOutletPhoto?: boolean;
-}
-
 export interface TagCache {
-  brands: BrandOption[];
+  brands: TagOption[];
   categories: TagOption[];
   posmTypes: TagOption[];
   skuTypes: TagOption[];

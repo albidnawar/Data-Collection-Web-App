@@ -1,25 +1,27 @@
 "use client";
 
 import { useTransition } from "react";
-import { toggleRepAdminAction } from "@/app/admin/reps/actions";
+import { updateRepRoleAction } from "@/app/admin/reps/actions";
+import type { RepRole } from "@/generated/prisma/client";
 
-export function RoleSelect({ repId, isAdmin }: { repId: string; isAdmin: boolean }) {
+export function RoleSelect({ repId, role }: { repId: string; role: RepRole }) {
   const [pending, startTransition] = useTransition();
 
   return (
     <select
-      value={isAdmin ? "admin" : "rep"}
+      value={role}
       disabled={pending}
       onChange={(e) => {
-        const nextIsAdmin = e.target.value === "admin";
+        const nextRole = e.target.value;
         startTransition(async () => {
-          await toggleRepAdminAction(repId, nextIsAdmin);
+          await updateRepRoleAction(repId, nextRole);
         });
       }}
       className="rounded border border-gray-300 px-2 py-1 text-xs dark:border-gray-700 dark:bg-gray-800"
     >
       <option value="rep">Rep</option>
       <option value="admin">Admin</option>
+      <option value="pran">Pran</option>
     </select>
   );
 }

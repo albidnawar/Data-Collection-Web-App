@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
+import type { RepRole } from "@/generated/prisma/client";
 
 export const {
   handlers: { GET, POST },
@@ -39,6 +40,7 @@ export const {
           name: rep.name,
           username: rep.username,
           isAdmin: rep.isAdmin,
+          role: rep.role,
         };
       },
     }),
@@ -49,6 +51,7 @@ export const {
         token.repId = user.id;
         token.username = (user as { username: string }).username;
         token.isAdmin = (user as { isAdmin: boolean }).isAdmin;
+        token.role = (user as { role: RepRole }).role;
       }
       return token;
     },
@@ -56,6 +59,7 @@ export const {
       session.user.id = token.repId as string;
       session.user.username = token.username as string;
       session.user.isAdmin = token.isAdmin as boolean;
+      session.user.role = token.role as RepRole;
       return session;
     },
   },

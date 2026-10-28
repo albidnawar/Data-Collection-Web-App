@@ -20,7 +20,7 @@ export default async function AdminRepsPage() {
               <th className="px-3 py-2">Name</th>
               <th className="px-3 py-2">Username</th>
               <th className="px-3 py-2">Active</th>
-              <th className="px-3 py-2">Admin</th>
+              <th className="px-3 py-2">Role</th>
               <th className="px-3 py-2">Manage</th>
             </tr>
           </thead>
@@ -37,7 +37,7 @@ export default async function AdminRepsPage() {
                   </form>
                 </td>
                 <td className="px-3 py-2">
-                  <RoleSelect repId={rep.id} isAdmin={rep.isAdmin} />
+                  <RoleSelect repId={rep.id} role={rep.role} />
                 </td>
                 <td className="px-3 py-2">
                   <RepRowControls repId={rep.id} name={rep.name} username={rep.username} />

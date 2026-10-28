@@ -4,6 +4,13 @@ import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
+import type { RepRole } from "@/generated/prisma/client";
+
+const REP_ROLES: RepRole[] = ["rep", "admin", "pran"];
+
+function isRepRole(value: unknown): value is RepRole {
+  return typeof value === "string" && (REP_ROLES as string[]).includes(value);
+}
 
 async function requireAdmin() {
   const session = await auth();
@@ -30,9 +37,10 @@ export async function addRepAction(_prevState: string | undefined, formData: For
     return "That username is already taken.";
   }
 
+  const repRole: RepRole = isRepRole(role) ? role : "rep";
   const passwordHash = await bcrypt.hash(password, 10);
   await prisma.rep.create({
-    data: { name: name.trim(), username: username.trim(), passwordHash, isAdmin: role === "admin" },
+    data: { name: name.trim(), username: username.trim(), passwordHash, role: repRole, isAdmin: repRole === "admin" },
   });
 
   revalidatePath("/admin/reps");
@@ -45,9 +53,10 @@ export async function toggleRepActiveAction(repId: string, active: boolean) {
   revalidatePath("/admin/reps");
 }
 
-export async function toggleRepAdminAction(repId: string, isAdmin: boolean) {
+export async function updateRepRoleAction(repId: string, role: string) {
   await requireAdmin();
-  await prisma.rep.update({ where: { id: repId }, data: { isAdmin } });
+  if (!isRepRole(role)) throw new Error("Invalid role");
+  await prisma.rep.update({ where: { id: repId }, data: { role, isAdmin: role === "admin" } });
   revalidatePath("/admin/reps");
 }
 
