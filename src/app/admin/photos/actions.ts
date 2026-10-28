@@ -33,7 +33,7 @@ export async function deletePhotoAction(id: string) {
   }
 
   await prisma.photoRecord.delete({ where: { id } });
-  await cleanupEmptyBrandFolder(record.brandId);
+  if (record.brandId) await cleanupEmptyBrandFolder(record.brandId);
 
   revalidatePath("/admin/photos");
   revalidatePath("/admin/pran");
@@ -120,7 +120,7 @@ export async function updatePhotoTagsAction(
     }
   }
 
-  if (record.brandId !== input.brandId || record.isGoodExecution !== input.isGoodExecution) {
+  if (record.brandId && (record.brandId !== input.brandId || record.isGoodExecution !== input.isGoodExecution)) {
     await cleanupEmptyBrandFolder(record.brandId);
   }
 

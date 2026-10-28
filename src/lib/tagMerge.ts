@@ -101,12 +101,15 @@ export async function mergeAndDeleteTag(
                 ? record.category?.name
                 : record.skuType?.name) ?? "");
 
+      // Safe to assume non-null here: affected records are matched by
+      // brandId/shopTypeId/categoryId/posmTypeId/skuTypeId, none of which the
+      // outlet's own outside photo (kind "outlet") ever has set.
       const filename = generateFilename(
         {
-          brand: type === "brand" ? newName : record.brand.name,
+          brand: type === "brand" ? newName : record.brand!.name,
           kind: record.kind,
           typeName,
-          shopType: type === "shopType" ? newName : record.shopType.name,
+          shopType: type === "shopType" ? newName : record.shopType!.name,
         },
         record.capturedAt,
       );
@@ -180,7 +183,7 @@ export async function deleteTagAndAllPhotos(type: TagType, id: string): Promise<
     await deleteDriveFolderIfEmpty(brand?.badExecutionDriveFolderId);
   } else {
     await deleteTagRow(type, id);
-    const affectedBrandIds = [...new Set(affected.map((r) => r.brandId))];
+    const affectedBrandIds = [...new Set(affected.map((r) => r.brandId).filter((v): v is string => v !== null))];
     for (const brandId of affectedBrandIds) {
       await cleanupEmptyBrandFolder(brandId);
     }

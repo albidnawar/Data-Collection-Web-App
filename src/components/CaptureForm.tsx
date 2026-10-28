@@ -182,15 +182,10 @@ export function CaptureForm({ requiresOutletCapture }: { requiresOutletCapture: 
     void requestLocation();
   };
 
-  const canSaveOutlet =
-    outletPhoto !== null &&
-    !locatingGps &&
-    brand !== null &&
-    shopType !== null &&
-    trimmedOutletName.length > 0;
+  const canSaveOutlet = outletPhoto !== null && !locatingGps && trimmedOutletName.length > 0;
 
   const handleSaveOutlet = async () => {
-    if (!canSaveOutlet || !outletPhoto || !outletCapturedAt || !brand || !shopType) return;
+    if (!canSaveOutlet || !outletPhoto || !outletCapturedAt) return;
 
     setSavingOutlet(true);
     setOutletError(null);
@@ -199,13 +194,13 @@ export function CaptureForm({ requiresOutletCapture }: { requiresOutletCapture: 
       await addPendingUpload({
         clientQueueId: crypto.randomUUID(),
         photoBuffer: await outletPhoto.arrayBuffer(),
-        brand: tagRef(brand),
+        brand: null,
         kind: "outlet",
         isGoodExecution: true,
         category: null,
         posmType: null,
         skuType: null,
-        shopType: tagRef(shopType),
+        shopType: null,
         outletName: trimmedOutletName,
         pranRelation: null,
         gpsLat: gps?.lat ?? null,
@@ -221,8 +216,6 @@ export function CaptureForm({ requiresOutletCapture }: { requiresOutletCapture: 
         nextRetryAt: null,
       });
 
-      recordTagUse("brand", brand);
-      recordTagUse("shopType", shopType);
       notifyQueueChanged();
       void drainUploadQueue();
 
@@ -419,10 +412,6 @@ export function CaptureForm({ requiresOutletCapture }: { requiresOutletCapture: 
                   Retake outlet photo
                 </button>
               )}
-
-              <p className="text-sm text-blue-800 dark:text-blue-200">
-                Also pick a brand and shop type below before saving.
-              </p>
 
               {outletError && <p className="text-sm font-medium text-red-600">{outletError}</p>}
 

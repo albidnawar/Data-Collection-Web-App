@@ -90,7 +90,7 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
           <ul className="flex flex-col gap-1 text-red-800 dark:text-red-200">
             {unreadable.map((r) => (
               <li key={r.id}>
-                <span className="font-medium">{r.filename}</span> ({r.rep.name}, {r.brand.name}) — {r.byteFormatIssue}
+                <span className="font-medium">{r.filename}</span> ({r.rep.name}, {r.brand?.name ?? "no brand"}) — {r.byteFormatIssue}
               </li>
             ))}
           </ul>
@@ -225,20 +225,30 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
                         : "SKU"}
                 </td>
                 <td className="px-3 py-2">{r.outletName ?? "-"}</td>
-                <PhotoTagsCells
-                  photoId={r.id}
-                  kind={r.kind}
-                  brandId={r.brandId}
-                  brandName={r.brand.name}
-                  typeId={typeId ?? null}
-                  typeName={typeName ?? null}
-                  shopTypeId={r.shopTypeId}
-                  shopTypeName={r.shopType.name}
-                  isGoodExecution={r.isGoodExecution}
-                  brands={brands}
-                  shopTypes={shopTypes}
-                  typeOptions={typeOptions}
-                />
+                {r.kind === "outlet" || !r.brandId || !r.shopTypeId ? (
+                  <>
+                    <td className="px-3 py-2">{r.brand?.name ?? "-"}</td>
+                    <td className="px-3 py-2">-</td>
+                    <td className="px-3 py-2">{r.shopType?.name ?? "-"}</td>
+                    <td className="px-3 py-2">-</td>
+                    <td className="px-3 py-2">-</td>
+                  </>
+                ) : (
+                  <PhotoTagsCells
+                    photoId={r.id}
+                    kind={r.kind}
+                    brandId={r.brandId}
+                    brandName={r.brand!.name}
+                    typeId={typeId ?? null}
+                    typeName={typeName ?? null}
+                    shopTypeId={r.shopTypeId}
+                    shopTypeName={r.shopType!.name}
+                    isGoodExecution={r.isGoodExecution}
+                    brands={brands}
+                    shopTypes={shopTypes}
+                    typeOptions={typeOptions}
+                  />
+                )}
                 <td className="px-3 py-2">
                   {r.shelfVacancy === true ? "Yes" : r.shelfVacancy === false ? "No" : "-"}
                 </td>

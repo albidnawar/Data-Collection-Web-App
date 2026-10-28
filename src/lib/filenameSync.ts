@@ -20,6 +20,12 @@ export async function runFilenameSyncBatch(): Promise<{ processed: number; faile
 
   for (const record of batch) {
     try {
+      // Only brand-tagged photos (not the outlet's own outside photo) ever
+      // get filenameSyncPending set, but guard anyway rather than crash the batch.
+      if (!record.brandId || !record.brand) {
+        failed += 1;
+        continue;
+      }
       const folderId = record.isGoodExecution
         ? await resolveOrCreateBrandFolder(record.brandId, record.brand.name)
         : await resolveOrCreateBadExecutionBrandFolder(record.brandId, record.brand.name);

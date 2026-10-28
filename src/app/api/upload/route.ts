@@ -3,7 +3,12 @@ import { Prisma } from "@/generated/prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { generateFilename } from "@/lib/filename";
-import { resolveOrCreateBadExecutionBrandFolder, resolveOrCreateBrandFolder, uploadPhotoToDrive } from "@/lib/driveFolders";
+import {
+  resolveOrCreateBadExecutionBrandFolder,
+  resolveOrCreateBrandFolder,
+  resolveOrCreateOutletsFolder,
+  uploadPhotoToDrive,
+} from "@/lib/driveFolders";
 import { resolveOrCreateTag } from "@/lib/tagResolve";
 import { isPhotoKind, isPranRelation, type PhotoKind } from "@/lib/tagTypes";
 import type { PhotoRecord } from "@/generated/prisma/client";
@@ -18,13 +23,13 @@ function requireString(formData: FormData, key: string): string | null {
 interface ClaimParams {
   clientQueueId: string;
   repId: string;
-  brandId: string;
+  brandId: string | null;
   kind: PhotoKind;
   isGoodExecution: boolean;
   categoryId: string | null;
   posmTypeId: string | null;
   skuTypeId: string | null;
-  shopTypeId: string;
+  shopTypeId: string | null;
   outletName: string | null;
   pranRelation: "pran" | "competitor" | null;
   gpsLat: number | null;
@@ -135,11 +140,11 @@ export async function POST(request: Request) {
 
   if (
     !clientQueueId ||
-    !brandName ||
-    !shopTypeName ||
     !capturedAtRaw ||
     !(photo instanceof File) ||
     !isPhotoKind(kindRaw) ||
+    (kindRaw !== "outlet" && !brandName) ||
+    (kindRaw !== "outlet" && !shopTypeName) ||
     (kindRaw === "posm" && !posmTypeName) ||
     (kindRaw === "category" && !categoryName) ||
     (kindRaw === "sku" && !skuTypeName) ||
@@ -157,9 +162,9 @@ export async function POST(request: Request) {
   const capturedAt = new Date(capturedAtRaw);
 
   const [brand, category, shopType, posmType, skuType] = await Promise.all([
-    resolveOrCreateTag("brand", brandName, session.user.id),
+    brandName ? resolveOrCreateTag("brand", brandName, session.user.id) : Promise.resolve(null),
     kind === "category" && categoryName ? resolveOrCreateTag("category", categoryName, session.user.id) : Promise.resolve(null),
-    resolveOrCreateTag("shopType", shopTypeName, session.user.id),
+    shopTypeName ? resolveOrCreateTag("shopType", shopTypeName, session.user.id) : Promise.resolve(null),
     kind === "posm" && posmTypeName ? resolveOrCreateTag("posmType", posmTypeName, session.user.id) : Promise.resolve(null),
     kind === "sku" && skuTypeName ? resolveOrCreateTag("skuType", skuTypeName, session.user.id) : Promise.resolve(null),
   ]);
@@ -175,10 +180,10 @@ export async function POST(request: Request) {
 
   const filename = generateFilename(
     {
-      brand: brand.name,
+      brand: brand?.name ?? null,
       kind,
       typeName,
-      shopType: shopType.name,
+      shopType: shopType?.name ?? null,
     },
     capturedAt,
   );
@@ -190,13 +195,13 @@ export async function POST(request: Request) {
   const claimed = await claimPhotoRecordForUpload({
     clientQueueId,
     repId: session.user.id,
-    brandId: brand.id,
+    brandId: brand?.id ?? null,
     kind,
     isGoodExecution,
     categoryId: category?.id ?? null,
     posmTypeId: posmType?.id ?? null,
     skuTypeId: skuType?.id ?? null,
-    shopTypeId: shopType.id,
+    shopTypeId: shopType?.id ?? null,
     outletName,
     pranRelation,
     gpsLat,
@@ -221,9 +226,12 @@ export async function POST(request: Request) {
   const photoRecord = claimed.record;
 
   try {
-    const folderId = isGoodExecution
-      ? await resolveOrCreateBrandFolder(brand.id, brand.name)
-      : await resolveOrCreateBadExecutionBrandFolder(brand.id, brand.name);
+    const folderId =
+      kind === "outlet"
+        ? await resolveOrCreateOutletsFolder()
+        : isGoodExecution
+          ? await resolveOrCreateBrandFolder(brand!.id, brand!.name)
+          : await resolveOrCreateBadExecutionBrandFolder(brand!.id, brand!.name);
     const fileBuffer = Buffer.from(await photo.arrayBuffer());
     if (fileBuffer.length === 0) {
       // Seen with photos that sat a long time in the offline queue — the

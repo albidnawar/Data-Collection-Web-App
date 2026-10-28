@@ -149,8 +149,12 @@ model PhotoRecord {
   repId String
   rep   Rep    @relation(fields: [repId], references: [id])
 
-  brandId String
-  brand   Brand  @relation(fields: [brandId], references: [id])
+  // Nullable only because the outlet's own outside/storefront photo (kind
+  // "outlet") isn't about one brand — a single outlet visit can cover
+  // several brands' displays, so that shot is filed in a shared Drive folder
+  // instead. Required (enforced in the upload route) for every other kind.
+  brandId String?
+  brand   Brand?  @relation(fields: [brandId], references: [id])
 
   kind PhotoKind
 
@@ -165,8 +169,10 @@ model PhotoRecord {
   skuTypeId String?
   skuType   SkuType? @relation(fields: [skuTypeId], references: [id])
 
-  shopTypeId String
-  shopType   ShopType @relation(fields: [shopTypeId], references: [id])
+  // Nullable for the same reason as brandId above — not asked before the
+  // outlet's own outside photo, only for the product photos taken after it.
+  shopTypeId String?
+  shopType   ShopType? @relation(fields: [shopTypeId], references: [id])
 
   shopName String?
 

@@ -6,7 +6,10 @@ export default async function AdminPhotosMapPage() {
   const [brands, records] = await Promise.all([
     prisma.brand.findMany({ orderBy: { name: "asc" } }),
     prisma.photoRecord.findMany({
-      where: { gpsLat: { not: null }, gpsLng: { not: null } },
+      // Outlet storefront photos (kind "outlet") aren't tied to one brand, so
+      // this brand-filterable map excludes them — they'd never match any
+      // brand filter anyway.
+      where: { gpsLat: { not: null }, gpsLng: { not: null }, brandId: { not: null } },
       orderBy: { capturedAt: "desc" },
       select: {
         id: true,
@@ -22,17 +25,19 @@ export default async function AdminPhotosMapPage() {
     }),
   ]);
 
-  const pins: PhotoPin[] = records.map((r) => ({
-    id: r.id,
-    lat: r.gpsLat as number,
-    lng: r.gpsLng as number,
-    filename: r.filename,
-    capturedAt: r.capturedAt.toISOString(),
-    driveFileUrl: r.driveFileUrl,
-    brandId: r.brandId,
-    brandName: r.brand.name,
-    repName: r.rep.name,
-  }));
+  const pins: PhotoPin[] = records
+    .filter((r): r is typeof r & { brandId: string; brand: { name: string } } => r.brandId !== null && r.brand !== null)
+    .map((r) => ({
+      id: r.id,
+      lat: r.gpsLat as number,
+      lng: r.gpsLng as number,
+      filename: r.filename,
+      capturedAt: r.capturedAt.toISOString(),
+      driveFileUrl: r.driveFileUrl,
+      brandId: r.brandId,
+      brandName: r.brand.name,
+      repName: r.rep.name,
+    }));
 
   return (
     <div className="flex flex-1 flex-col gap-4">

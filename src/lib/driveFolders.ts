@@ -109,11 +109,13 @@ export async function resolveOrCreateBrandFolder(brandId: string, brandName: str
 
 const ATTENDANCE_FOLDER_NAME = "Attendance";
 const BAD_EXECUTION_FOLDER_NAME = "Bad Execution";
+const OUTLETS_FOLDER_NAME = "Outlets";
 // Warm-instance-only caches: harmless to re-resolve on a cold start, and each of
 // these top-level folders is only ever created once (the first time it's needed
 // after this shipped), so the brand-folder claim dance above isn't needed here.
 let attendanceFolderIdCache: string | null = null;
 let badExecutionRootFolderIdCache: string | null = null;
+let outletsFolderIdCache: string | null = null;
 
 async function resolveOrCreateNamedRootFolder(name: string): Promise<string> {
   const drive = getDriveClient();
@@ -150,6 +152,15 @@ export async function resolveOrCreateAttendanceFolder(): Promise<string> {
   if (attendanceFolderIdCache) return attendanceFolderIdCache;
   attendanceFolderIdCache = await resolveOrCreateNamedRootFolder(ATTENDANCE_FOLDER_NAME);
   return attendanceFolderIdCache;
+}
+
+/** Outlet outside/storefront photos aren't tied to one brand (a single visit
+ * can cover several brands' displays), so they go in one shared folder rather
+ * than a per-brand one. */
+export async function resolveOrCreateOutletsFolder(): Promise<string> {
+  if (outletsFolderIdCache) return outletsFolderIdCache;
+  outletsFolderIdCache = await resolveOrCreateNamedRootFolder(OUTLETS_FOLDER_NAME);
+  return outletsFolderIdCache;
 }
 
 async function resolveOrCreateBadExecutionRootFolder(): Promise<string> {

@@ -190,12 +190,12 @@ export default async function AdminPranPage(props: PageProps<"/admin/pran">) {
                       )}
                     </td>
                     <td className="px-3 py-2">{r.outletName ?? "-"}</td>
-                    <td className="px-3 py-2">{r.brand.name}</td>
+                    <td className="px-3 py-2">{r.brand?.name ?? "-"}</td>
                     <td className="px-3 py-2">
                       {r.kind === "posm" ? "POSM" : r.kind === "category" ? "Category Shelf Display" : "SKU"}
                     </td>
                     <td className="px-3 py-2">{typeName ?? "-"}</td>
-                    <td className="px-3 py-2">{r.shopType.name}</td>
+                    <td className="px-3 py-2">{r.shopType?.name ?? "-"}</td>
                     <td className="px-3 py-2">
                       <span className={r.isGoodExecution ? "text-green-600" : "text-red-600"}>
                         {r.isGoodExecution ? "Good" : "Bad"}

@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "PhotoRecord" ALTER COLUMN "brandId" DROP NOT NULL;
+ALTER TABLE "PhotoRecord" ALTER COLUMN "shopTypeId" DROP NOT NULL;

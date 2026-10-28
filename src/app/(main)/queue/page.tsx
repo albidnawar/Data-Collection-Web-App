@@ -32,10 +32,16 @@ function QueueItem({ item }: { item: PendingUpload }) {
       )}
       <div className="flex-1">
         <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-          {item.brand.name} · {item.shopType.name}
+          {item.brand && item.shopType ? `${item.brand.name} · ${item.shopType.name}` : "Outlet photo"}
         </p>
         <p className="text-xs text-gray-500 dark:text-gray-400">
-          {item.kind === "posm" ? "POSM" : item.kind === "category" ? "Category Shelf Display" : "SKU"}
+          {item.kind === "posm"
+            ? "POSM"
+            : item.kind === "category"
+              ? "Category Shelf Display"
+              : item.kind === "outlet"
+                ? "Outlet"
+                : "SKU"}
           {(() => {
             const typeName =
               item.kind === "posm" ? item.posmType?.name : item.kind === "category" ? item.category?.name : item.skuType?.name;

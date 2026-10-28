@@ -4,6 +4,10 @@ import { StatCard } from "@/components/admin/StatCard";
 import { UploadsChart, type UploadsChartPoint } from "@/components/admin/UploadsChart";
 import Link from "next/link";
 
+function isNonNull<T>(value: T | null): value is T {
+  return value !== null;
+}
+
 function startOfDay(daysAgo: number): Date {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
@@ -34,30 +38,32 @@ export async function OverviewContent({ isPublic = false }: { isPublic?: boolean
     prisma.photoRecord.count({ where: { status: "uploaded" } }),
     prisma.photoRecord.count({ where: { status: { in: ["pending", "uploading", "failed"] } } }),
     prisma.rep.count({ where: { active: true } }),
+    // The outlet's own outside photo (kind "outlet") has no brand/shop type —
+    // excluded from these brand/shop-type breakdowns, not just a product display.
     prisma.photoRecord.groupBy({
       by: ["brandId"],
-      where: { status: "uploaded" },
+      where: { status: "uploaded", brandId: { not: null } },
       _count: { _all: true },
       orderBy: { _count: { brandId: "desc" } },
       take: 5,
     }),
     prisma.photoRecord.groupBy({
       by: ["shopTypeId"],
-      where: { status: "uploaded" },
+      where: { status: "uploaded", shopTypeId: { not: null } },
       _count: { _all: true },
       orderBy: { _count: { shopTypeId: "desc" } },
       take: 5,
     }),
     prisma.photoRecord.groupBy({
       by: ["brandId"],
-      where: { status: "uploaded", isGoodExecution: false },
+      where: { status: "uploaded", isGoodExecution: false, brandId: { not: null } },
       _count: { _all: true },
       orderBy: { _count: { brandId: "desc" } },
       take: 5,
     }),
     prisma.photoRecord.groupBy({
       by: ["brandId", "kind"],
-      where: { status: "uploaded" },
+      where: { status: "uploaded", kind: { in: ["posm", "category", "sku"] } },
       _count: { _all: true },
     }),
     prisma.$queryRaw<Array<{ day: Date; count: bigint }>>`
@@ -81,15 +87,15 @@ export async function OverviewContent({ isPublic = false }: { isPublic?: boolean
         id: {
           in: [
             ...new Set([
-              ...topBrandsRaw.map((b) => b.brandId),
-              ...badExecutionTopBrandsRaw.map((b) => b.brandId),
-              ...brandKindCountsRaw.map((b) => b.brandId),
+              ...topBrandsRaw.map((b) => b.brandId).filter(isNonNull),
+              ...badExecutionTopBrandsRaw.map((b) => b.brandId).filter(isNonNull),
+              ...brandKindCountsRaw.map((b) => b.brandId).filter(isNonNull),
             ]),
           ],
         },
       },
     }),
-    prisma.shopType.findMany({ where: { id: { in: topShopTypesRaw.map((s) => s.shopTypeId) } } }),
+    prisma.shopType.findMany({ where: { id: { in: topShopTypesRaw.map((s) => s.shopTypeId).filter(isNonNull) } } }),
   ]);
 
   const topBrands = topBrandsRaw.map((b) => ({
@@ -107,6 +113,7 @@ export async function OverviewContent({ isPublic = false }: { isPublic?: boolean
 
   const brandKindMap = new Map<string, { name: string; posm: number; category: number; sku: number }>();
   for (const row of brandKindCountsRaw) {
+    if (!row.brandId) continue;
     const name = brands.find((br) => br.id === row.brandId)?.name ?? "Unknown";
     const entry = brandKindMap.get(row.brandId) ?? { name, posm: 0, category: 0, sku: 0 };
     if (row.kind === "posm") entry.posm += row._count._all;
@@ -237,7 +244,7 @@ export async function OverviewContent({ isPublic = false }: { isPublic?: boolean
             <ul className="flex flex-col gap-2">
               {failedRecent.map((f) => (
                 <li key={f.id} className="text-sm">
-                  <span className="font-medium text-gray-900 dark:text-gray-100">{f.brand.name}</span>{" "}
+                  <span className="font-medium text-gray-900 dark:text-gray-100">{f.brand?.name ?? "No brand"}</span>{" "}
                   <span className="text-gray-500 dark:text-gray-400">
                     by {f.rep.name}: {f.errorMessage ?? "Unknown error"}
                   </span>

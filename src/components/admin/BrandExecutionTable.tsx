@@ -4,11 +4,15 @@ import { StatCard } from "@/components/admin/StatCard";
 import type { PhotoKind } from "@/lib/tagTypes";
 
 export async function BrandExecutionTable({ kind, title }: { kind: PhotoKind; title: string }) {
-  const rows = await prisma.photoRecord.groupBy({
-    by: ["brandId", "isGoodExecution"],
-    where: { status: "uploaded", kind },
-    _count: { _all: true },
-  });
+  // brandId is only nullable on the schema for the outlet's own outside
+  // photo (kind "outlet"), which never matches "category"/"posm" here.
+  const rows = (
+    await prisma.photoRecord.groupBy({
+      by: ["brandId", "isGoodExecution"],
+      where: { status: "uploaded", kind },
+      _count: { _all: true },
+    })
+  ).filter((r): r is typeof r & { brandId: string } => r.brandId !== null);
 
   const brands = await prisma.brand.findMany({
     where: { id: { in: [...new Set(rows.map((r) => r.brandId))] } },

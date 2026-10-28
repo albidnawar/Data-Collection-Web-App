@@ -1,10 +1,12 @@
 import type { PhotoKind } from "@/lib/tagTypes";
 
 export interface FilenameTags {
-  brand: string;
+  // Null only for the outlet's own outside/storefront photo (kind "outlet"),
+  // which isn't tied to one brand or shop type.
+  brand: string | null;
   kind: PhotoKind;
   typeName: string;
-  shopType: string;
+  shopType: string | null;
 }
 
 const KIND_FILENAME_PART: Record<PhotoKind, string> = {
@@ -43,12 +45,19 @@ function formatTime(date: Date): string {
 }
 
 export function generateFilename(tags: FilenameTags, capturedAt: Date): string {
-  const brand = sanitizeForFilename(tags.brand);
   const kindPart = KIND_FILENAME_PART[tags.kind];
   const typePart = sanitizeForFilename(tags.typeName);
-  const shopPart = sanitizeForFilename(tags.shopType);
   const datePart = formatDate(capturedAt);
   const timePart = formatTime(capturedAt);
 
-  return `${[brand, kindPart, typePart, shopPart, datePart, timePart].join("_")}.jpg`;
+  const parts = [
+    tags.brand !== null ? sanitizeForFilename(tags.brand) : null,
+    kindPart,
+    typePart,
+    tags.shopType !== null ? sanitizeForFilename(tags.shopType) : null,
+    datePart,
+    timePart,
+  ].filter((p): p is string => p !== null);
+
+  return `${parts.join("_")}.jpg`;
 }

@@ -18,13 +18,15 @@ export interface PendingUpload {
   // Present only on records queued by an older app version, before this
   // field was renamed — read as a fallback, never written anymore.
   photoBlob?: Blob;
-  brand: TagRef;
+  // Null only for the outlet's own outside/storefront photo (kind "outlet"),
+  // which isn't tied to one brand or shop type.
+  brand: TagRef | null;
   kind: PhotoKind;
   isGoodExecution: boolean;
   category: TagRef | null;
   posmType: TagRef | null;
   skuType: TagRef | null;
-  shopType: TagRef;
+  shopType: TagRef | null;
   // Carried over from the outlet capture step (reps with role "pran") and
   // attached to every photo taken at that outlet, including the outlet's own
   // outside/storefront photo (kind "outlet"). Null for other reps.

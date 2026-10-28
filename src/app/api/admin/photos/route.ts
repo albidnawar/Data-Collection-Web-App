@@ -53,10 +53,16 @@ export async function GET(request: Request) {
     [
       r.capturedAt.toISOString(),
       r.rep.name,
-      r.brand.name,
-      r.kind === "posm" ? "POSM" : r.kind === "category" ? "Category Shelf Display" : "SKU",
+      r.brand?.name ?? "",
+      r.kind === "posm"
+        ? "POSM"
+        : r.kind === "category"
+          ? "Category Shelf Display"
+          : r.kind === "outlet"
+            ? "Outlet"
+            : "SKU",
       (r.kind === "posm" ? r.posmType?.name : r.kind === "category" ? r.category?.name : r.skuType?.name) ?? "",
-      r.shopType.name,
+      r.shopType?.name ?? "",
       r.isGoodExecution ? "Good" : "Bad",
       r.shelfVacancy === true ? "Yes" : r.shelfVacancy === false ? "No" : "",
       r.surroundingRemarks ?? "",
