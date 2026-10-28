@@ -30,8 +30,12 @@ export default async function AdminPranPage(props: PageProps<"/admin/pran">) {
   };
   const page = Math.max(1, Number(get("page") ?? "1") || 1);
 
+  // Every photo captured by a Pran-role rep belongs in this module, not just
+  // the ones tagged Pran/Competitor - that's how the outlet's own outside
+  // photo (kind "outlet", which never carries a pranRelation tag) shows up
+  // here as its own row instead of only being visible in /admin/photos.
   const where: Prisma.PhotoRecordWhereInput = buildPhotoWhere(filters);
-  if (!where.pranRelation) where.pranRelation = { not: null };
+  where.rep = { role: "pran" };
 
   const [reps, brands, total, records] = await Promise.all([
     prisma.rep.findMany({ where: { role: "pran" }, orderBy: { name: "asc" } }),
@@ -167,9 +171,10 @@ export default async function AdminPranPage(props: PageProps<"/admin/pran">) {
             </thead>
             <tbody>
               {records.map((r) => {
+                const isOutletKind = r.kind === "outlet";
                 const typeName =
-                  r.kind === "posm" ? r.posmType?.name : r.kind === "category" ? r.category?.name : r.skuType?.name;
-                const outletVisit = findOutletVisit(r.repId, r.outletName, r.capturedAt);
+                  r.kind === "posm" ? r.posmType?.name : r.kind === "category" ? r.category?.name : r.kind === "sku" ? r.skuType?.name : undefined;
+                const outletVisit = isOutletKind ? null : findOutletVisit(r.repId, r.outletName, r.capturedAt);
                 const remarks = [r.surroundingRemarks, r.otherRemarks].filter(Boolean).join(" / ");
 
                 return (
@@ -178,12 +183,18 @@ export default async function AdminPranPage(props: PageProps<"/admin/pran">) {
                       <PhotoThumbnail photoId={r.id} hasFile={!!r.driveFileId} />
                     </td>
                     <td className="px-3 py-2">
-                      <span className={r.pranRelation === "pran" ? "font-medium text-blue-600" : "font-medium text-amber-600"}>
-                        {r.pranRelation === "pran" ? "Pran" : "Competitor"}
-                      </span>
+                      {isOutletKind ? (
+                        "-"
+                      ) : (
+                        <span className={r.pranRelation === "pran" ? "font-medium text-blue-600" : "font-medium text-amber-600"}>
+                          {r.pranRelation === "pran" ? "Pran" : "Competitor"}
+                        </span>
+                      )}
                     </td>
                     <td className="px-3 py-2">
-                      {outletVisit ? (
+                      {isOutletKind ? (
+                        "-"
+                      ) : outletVisit ? (
                         <PhotoThumbnail photoId={outletVisit.id} hasFile={!!outletVisit.driveFileId} />
                       ) : (
                         <div className="h-10 w-10 rounded bg-gray-100 dark:bg-gray-800" />
@@ -192,14 +203,24 @@ export default async function AdminPranPage(props: PageProps<"/admin/pran">) {
                     <td className="px-3 py-2">{r.outletName ?? "-"}</td>
                     <td className="px-3 py-2">{r.brand?.name ?? "-"}</td>
                     <td className="px-3 py-2">
-                      {r.kind === "posm" ? "POSM" : r.kind === "category" ? "Category Shelf Display" : "SKU"}
+                      {r.kind === "posm"
+                        ? "POSM"
+                        : r.kind === "category"
+                          ? "Category Shelf Display"
+                          : r.kind === "sku"
+                            ? "SKU"
+                            : "Outlet"}
                     </td>
                     <td className="px-3 py-2">{typeName ?? "-"}</td>
                     <td className="px-3 py-2">{r.shopType?.name ?? "-"}</td>
                     <td className="px-3 py-2">
-                      <span className={r.isGoodExecution ? "text-green-600" : "text-red-600"}>
-                        {r.isGoodExecution ? "Good" : "Bad"}
-                      </span>
+                      {isOutletKind ? (
+                        "-"
+                      ) : (
+                        <span className={r.isGoodExecution ? "text-green-600" : "text-red-600"}>
+                          {r.isGoodExecution ? "Good" : "Bad"}
+                        </span>
+                      )}
                     </td>
                     <td className="px-3 py-2">{r.rep.name}</td>
                     <td className="px-3 py-2 whitespace-nowrap">
