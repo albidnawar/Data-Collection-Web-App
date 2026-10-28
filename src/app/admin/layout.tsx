@@ -14,6 +14,7 @@ const TABS = [
   { href: "/admin/category-shelf-display", label: "Category Shelf Display" },
   { href: "/admin/posm", label: "POSM" },
   { href: "/admin/attendance", label: "Attendance" },
+  { href: "/admin/pran", label: "Pran" },
   { href: "/admin/reps", label: "Reps" },
   { href: "/admin/tags", label: "Tags" },
   { href: "/admin/outlets", label: "Outlets" },

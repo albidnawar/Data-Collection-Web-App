@@ -36,6 +36,14 @@ enum RepRole {
   pran
 }
 
+// For "pran" reps only: whether a POSM/category/SKU photo is of Pran's own
+// display or a competitor's, so admins can track Pran's displays against the
+// competition outlet by outlet (see PhotoRecord.pranRelation).
+enum PranRelation {
+  pran
+  competitor
+}
+
 model Rep {
   id           String   @id @default(uuid())
   name         String
@@ -167,6 +175,11 @@ model PhotoRecord {
   // (including the outlet's own outside/storefront photo, kind "outlet").
   outletName String?
 
+  // Set only on POSM/category/SKU photos from "pran" reps — whether this
+  // specific photo is of Pran's own display or a competitor's. Null for the
+  // outlet's own outside photo (kind "outlet") and for non-"pran" reps.
+  pranRelation PranRelation?
+
   gpsLat  Float?
   gpsLng  Float?
   address String?
@@ -209,6 +222,8 @@ model PhotoRecord {
   @@index([kind])
   @@index([byteFormatCheckedAt])
   @@index([byteFormatIssue])
+  @@index([pranRelation])
+  @@index([outletName])
 }
 
 // One row per rep per day. dateKey is a "YYYY-MM-DD" string computed in the

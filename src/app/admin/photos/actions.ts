@@ -36,6 +36,7 @@ export async function deletePhotoAction(id: string) {
   await cleanupEmptyBrandFolder(record.brandId);
 
   revalidatePath("/admin/photos");
+  revalidatePath("/admin/pran");
   revalidatePath("/admin");
 }
 

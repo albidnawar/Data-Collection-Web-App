@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 import { generateFilename } from "@/lib/filename";
 import { resolveOrCreateBadExecutionBrandFolder, resolveOrCreateBrandFolder, uploadPhotoToDrive } from "@/lib/driveFolders";
 import { resolveOrCreateTag } from "@/lib/tagResolve";
-import { isPhotoKind, type PhotoKind } from "@/lib/tagTypes";
+import { isPhotoKind, isPranRelation, type PhotoKind } from "@/lib/tagTypes";
 import type { PhotoRecord } from "@/generated/prisma/client";
 
 export const maxDuration = 60;
@@ -26,6 +26,7 @@ interface ClaimParams {
   skuTypeId: string | null;
   shopTypeId: string;
   outletName: string | null;
+  pranRelation: "pran" | "competitor" | null;
   gpsLat: number | null;
   gpsLng: number | null;
   address: string | null;
@@ -56,6 +57,7 @@ async function claimPhotoRecordForUpload(
     skuTypeId: params.skuTypeId,
     shopTypeId: params.shopTypeId,
     outletName: params.outletName,
+    pranRelation: params.pranRelation,
     gpsLat: params.gpsLat,
     gpsLng: params.gpsLng,
     address: params.address,
@@ -122,6 +124,7 @@ export async function POST(request: Request) {
   const posmTypeName = requireString(formData, "posmTypeName");
   const skuTypeName = requireString(formData, "skuTypeName");
   const outletName = requireString(formData, "outletName");
+  const pranRelationRaw = requireString(formData, "pranRelation");
   const gpsLatRaw = formData.get("gpsLat");
   const gpsLngRaw = formData.get("gpsLng");
   const address = requireString(formData, "address");
@@ -141,6 +144,8 @@ export async function POST(request: Request) {
     (kindRaw === "category" && !categoryName) ||
     (kindRaw === "sku" && !skuTypeName) ||
     (kindRaw === "outlet" && !outletName) ||
+    (session.user.role === "pran" && kindRaw !== "outlet" && !isPranRelation(pranRelationRaw)) ||
+    (pranRelationRaw !== null && !isPranRelation(pranRelationRaw)) ||
     (isGoodExecutionRaw !== "true" && isGoodExecutionRaw !== "false")
   ) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -148,6 +153,7 @@ export async function POST(request: Request) {
 
   const kind = kindRaw;
   const isGoodExecution = isGoodExecutionRaw === "true";
+  const pranRelation = isPranRelation(pranRelationRaw) ? pranRelationRaw : null;
   const capturedAt = new Date(capturedAtRaw);
 
   const [brand, category, shopType, posmType, skuType] = await Promise.all([
@@ -192,6 +198,7 @@ export async function POST(request: Request) {
     skuTypeId: skuType?.id ?? null,
     shopTypeId: shopType.id,
     outletName,
+    pranRelation,
     gpsLat,
     gpsLng,
     address,

@@ -10,6 +10,8 @@ export interface PhotoFilterParams {
   status?: string;
   executionQuality?: string;
   shelfVacancy?: string;
+  pranRelation?: string;
+  outletName?: string;
 }
 
 export function buildPhotoWhere(params: PhotoFilterParams): Prisma.PhotoRecordWhereInput {
@@ -33,6 +35,10 @@ export function buildPhotoWhere(params: PhotoFilterParams): Prisma.PhotoRecordWh
   if (params.executionQuality === "bad") where.isGoodExecution = false;
   if (params.shelfVacancy === "yes") where.shelfVacancy = true;
   if (params.shelfVacancy === "no") where.shelfVacancy = false;
+  if (params.pranRelation && ["pran", "competitor"].includes(params.pranRelation)) {
+    where.pranRelation = params.pranRelation as Prisma.EnumPranRelationNullableFilter["equals"];
+  }
+  if (params.outletName) where.outletName = { contains: params.outletName, mode: "insensitive" };
 
   return where;
 }

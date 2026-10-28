@@ -5,6 +5,7 @@ import { Camera } from "lucide-react";
 import { ChipGroup, type ChipOption } from "@/components/ChipGroup";
 import { DemoCaptureTour } from "@/components/DemoCaptureTour";
 import { ExecutionQualityToggle } from "@/components/ExecutionQualityToggle";
+import { PranRelationToggle } from "@/components/PranRelationToggle";
 import { ShelfVacancyToggle } from "@/components/ShelfVacancyToggle";
 import { TagKindToggle } from "@/components/TagKindToggle";
 import { useTagCache } from "@/hooks/useTagCache";
@@ -16,7 +17,7 @@ import { compressImageIfNeeded } from "@/lib/imageCompression";
 import { addPendingUpload, type TagRef } from "@/lib/indexedDb";
 import { recordTagUse, sortByMostRecentlyUsed } from "@/lib/recentTags";
 import { drainUploadQueue } from "@/lib/syncQueue";
-import type { PhotoKind, TagType } from "@/lib/tagTypes";
+import type { PhotoKind, PranRelation, TagType } from "@/lib/tagTypes";
 
 const tagRef = (name: string): TagRef => ({ id: null, name });
 
@@ -36,6 +37,10 @@ export function CaptureForm({ requiresOutletCapture }: { requiresOutletCapture: 
   const [brand, setBrand] = useState<string | null>(null);
   const [kind, setKind] = useState<PhotoKind>("category");
   const [isGoodExecution, setIsGoodExecution] = useState<boolean | null>(null);
+  // Only asked of "pran" reps, for every POSM/category/SKU photo — never
+  // carried over, since the next photo at the same outlet could easily be a
+  // different brand's display.
+  const [pranRelation, setPranRelation] = useState<PranRelation | null>(null);
   const [category, setCategory] = useState<string | null>(null);
   const [posmType, setPosmType] = useState<string | null>(null);
   const [skuType, setSkuType] = useState<string | null>(null);
@@ -202,6 +207,7 @@ export function CaptureForm({ requiresOutletCapture }: { requiresOutletCapture: 
         skuType: null,
         shopType: tagRef(shopType),
         outletName: trimmedOutletName,
+        pranRelation: null,
         gpsLat: gps?.lat ?? null,
         gpsLng: gps?.lng ?? null,
         address: gps ? formatRawCoords(gps.lat, gps.lng) : null,
@@ -241,6 +247,7 @@ export function CaptureForm({ requiresOutletCapture }: { requiresOutletCapture: 
     shopType !== null &&
     isGoodExecution !== null &&
     outletRequirementMet &&
+    (!requiresOutletCapture || pranRelation !== null) &&
     (kind === "posm" ? posmType !== null : kind === "category" ? category !== null : skuType !== null);
 
   const handleSave = async () => {
@@ -257,6 +264,7 @@ export function CaptureForm({ requiresOutletCapture }: { requiresOutletCapture: 
       skuType: kind === "sku" && skuType ? tagRef(skuType) : null,
       shopType: tagRef(shopType),
       outletName: requiresOutletCapture ? trimmedOutletName : null,
+      pranRelation: requiresOutletCapture ? pranRelation : null,
       gpsLat: gps?.lat ?? null,
       gpsLng: gps?.lng ?? null,
       address: gps ? formatRawCoords(gps.lat, gps.lng) : null,
@@ -290,6 +298,7 @@ export function CaptureForm({ requiresOutletCapture }: { requiresOutletCapture: 
     setSkuType(null);
     setKind("category");
     setIsGoodExecution(null);
+    setPranRelation(null);
     setSurroundingRemarks("");
     setOtherRemarks("");
     setShelfVacancy(null);
@@ -494,6 +503,10 @@ export function CaptureForm({ requiresOutletCapture }: { requiresOutletCapture: 
       <div id="tour-kind">
         <TagKindToggle kind={kind} onChange={setKind} />
       </div>
+
+      {requiresOutletCapture && (
+        <PranRelationToggle pranRelation={pranRelation} onChange={setPranRelation} />
+      )}
 
       {kind === "posm" ? (
         <ChipGroup

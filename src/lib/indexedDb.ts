@@ -1,5 +1,5 @@
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
-import type { PhotoKind } from "@/lib/tagTypes";
+import type { PhotoKind, PranRelation } from "@/lib/tagTypes";
 
 export type UploadQueueStatus = "queued" | "uploading" | "failed" | "uploaded";
 
@@ -29,6 +29,10 @@ export interface PendingUpload {
   // attached to every photo taken at that outlet, including the outlet's own
   // outside/storefront photo (kind "outlet"). Null for other reps.
   outletName: string | null;
+  // Asked fresh on every POSM/category/SKU photo from "pran" reps — whether
+  // this photo is of Pran's own display or a competitor's. Null for the
+  // outlet's own outside photo and for other reps.
+  pranRelation: PranRelation | null;
   gpsLat: number | null;
   gpsLng: number | null;
   address: string | null;

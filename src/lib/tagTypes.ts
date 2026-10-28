@@ -13,3 +13,11 @@ export type PhotoKind = (typeof PHOTO_KINDS)[number];
 export function isPhotoKind(value: unknown): value is PhotoKind {
   return typeof value === "string" && (PHOTO_KINDS as readonly string[]).includes(value);
 }
+
+export const PRAN_RELATIONS = ["pran", "competitor"] as const;
+
+export type PranRelation = (typeof PRAN_RELATIONS)[number];
+
+export function isPranRelation(value: unknown): value is PranRelation {
+  return typeof value === "string" && (PRAN_RELATIONS as readonly string[]).includes(value);
+}
