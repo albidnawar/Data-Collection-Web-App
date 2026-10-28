@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/db";
 import { AddRepForm } from "@/components/admin/AddRepForm";
 import { RepRowControls } from "@/components/admin/RepRowControls";
-import { toggleRepActiveAction, toggleRepAdminAction } from "./actions";
+import { RoleSelect } from "@/components/admin/RoleSelect";
+import { toggleRepActiveAction } from "./actions";
 
 export default async function AdminRepsPage() {
   const reps = await prisma.rep.findMany({ orderBy: { createdAt: "asc" } });
@@ -36,11 +37,7 @@ export default async function AdminRepsPage() {
                   </form>
                 </td>
                 <td className="px-3 py-2">
-                  <form action={toggleRepAdminAction.bind(null, rep.id, !rep.isAdmin)}>
-                    <button type="submit" className={rep.isAdmin ? "text-blue-600" : "text-gray-400"}>
-                      {rep.isAdmin ? "Admin" : "Rep"}
-                    </button>
-                  </form>
+                  <RoleSelect repId={rep.id} isAdmin={rep.isAdmin} />
                 </td>
                 <td className="px-3 py-2">
                   <RepRowControls repId={rep.id} name={rep.name} username={rep.username} />

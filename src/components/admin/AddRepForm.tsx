@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { addRepAction } from "@/app/admin/reps/actions";
+import { PasswordInput } from "@/components/admin/PasswordInput";
 
 export function AddRepForm() {
   const [error, formAction, isPending] = useActionState(addRepAction, undefined);
@@ -21,7 +22,23 @@ export function AddRepForm() {
       </label>
       <label className="flex flex-col gap-1 text-xs text-gray-500">
         Password
-        <input name="password" type="password" required minLength={6} className="rounded border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800" />
+        <PasswordInput
+          name="password"
+          required
+          minLength={6}
+          className="rounded border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800"
+        />
+      </label>
+      <label className="flex flex-col gap-1 text-xs text-gray-500">
+        Role
+        <select
+          name="role"
+          defaultValue="rep"
+          className="rounded border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800"
+        >
+          <option value="rep">Rep</option>
+          <option value="admin">Admin</option>
+        </select>
       </label>
       <button
         type="submit"

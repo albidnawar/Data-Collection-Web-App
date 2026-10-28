@@ -16,6 +16,7 @@ export async function addRepAction(_prevState: string | undefined, formData: For
   const name = formData.get("name");
   const username = formData.get("username");
   const password = formData.get("password");
+  const role = formData.get("role");
 
   if (typeof name !== "string" || typeof username !== "string" || typeof password !== "string") {
     return "All fields are required.";
@@ -31,7 +32,7 @@ export async function addRepAction(_prevState: string | undefined, formData: For
 
   const passwordHash = await bcrypt.hash(password, 10);
   await prisma.rep.create({
-    data: { name: name.trim(), username: username.trim(), passwordHash },
+    data: { name: name.trim(), username: username.trim(), passwordHash, isAdmin: role === "admin" },
   });
 
   revalidatePath("/admin/reps");

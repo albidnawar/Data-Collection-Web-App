@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useActionState } from "react";
 import { changeRepPasswordAction, deleteRepAction, editRepAction } from "@/app/admin/reps/actions";
+import { PasswordInput } from "@/components/admin/PasswordInput";
 
 type Panel = "edit" | "password" | "delete" | null;
 
@@ -56,9 +57,8 @@ export function RepRowControls({ repId, name, username }: { repId: string; name:
 
       {panel === "password" && (
         <form action={pwAction} className="flex flex-wrap items-end gap-2">
-          <input
+          <PasswordInput
             name="password"
-            type="password"
             placeholder="New password"
             required
             minLength={6}
