@@ -25,6 +25,7 @@ interface ClaimParams {
   posmTypeId: string | null;
   skuTypeId: string | null;
   shopTypeId: string;
+  outletName: string | null;
   gpsLat: number | null;
   gpsLng: number | null;
   address: string | null;
@@ -54,6 +55,7 @@ async function claimPhotoRecordForUpload(
     posmTypeId: params.posmTypeId,
     skuTypeId: params.skuTypeId,
     shopTypeId: params.shopTypeId,
+    outletName: params.outletName,
     gpsLat: params.gpsLat,
     gpsLng: params.gpsLng,
     address: params.address,
@@ -119,6 +121,7 @@ export async function POST(request: Request) {
   const isGoodExecutionRaw = requireString(formData, "isGoodExecution");
   const posmTypeName = requireString(formData, "posmTypeName");
   const skuTypeName = requireString(formData, "skuTypeName");
+  const outletName = requireString(formData, "outletName");
   const gpsLatRaw = formData.get("gpsLat");
   const gpsLngRaw = formData.get("gpsLng");
   const address = requireString(formData, "address");
@@ -137,6 +140,7 @@ export async function POST(request: Request) {
     (kindRaw === "posm" && !posmTypeName) ||
     (kindRaw === "category" && !categoryName) ||
     (kindRaw === "sku" && !skuTypeName) ||
+    (kindRaw === "outlet" && !outletName) ||
     (isGoodExecutionRaw !== "true" && isGoodExecutionRaw !== "false")
   ) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -155,7 +159,13 @@ export async function POST(request: Request) {
   ]);
 
   const typeName =
-    kind === "posm" ? (posmType?.name ?? "") : kind === "category" ? (category?.name ?? "") : (skuType?.name ?? "");
+    kind === "posm"
+      ? (posmType?.name ?? "")
+      : kind === "category"
+        ? (category?.name ?? "")
+        : kind === "outlet"
+          ? (outletName ?? "")
+          : (skuType?.name ?? "");
 
   const filename = generateFilename(
     {
@@ -181,6 +191,7 @@ export async function POST(request: Request) {
     posmTypeId: posmType?.id ?? null,
     skuTypeId: skuType?.id ?? null,
     shopTypeId: shopType.id,
+    outletName,
     gpsLat,
     gpsLng,
     address,

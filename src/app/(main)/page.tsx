@@ -18,8 +18,11 @@ import { recordTagUse, sortByMostRecentlyUsed } from "@/lib/recentTags";
 import { drainUploadQueue } from "@/lib/syncQueue";
 import type { PhotoKind, TagType } from "@/lib/tagTypes";
 
+const tagRef = (name: string): TagRef => ({ id: null, name });
+
 export default function CapturePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const outletFileInputRef = useRef<HTMLInputElement>(null);
   const { cache, addLocalTag, removeLocalTag } = useTagCache();
 
   const [photo, setPhoto] = useState<File | null>(null);
@@ -43,6 +46,18 @@ export default function CapturePage() {
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [compressing, setCompressing] = useState(false);
+
+  // Outlet capture — required once per outlet visit for brands with
+  // requiresOutletPhoto set, then carried over (like brand/shopType) onto
+  // every subsequent photo taken at that outlet.
+  const [outletName, setOutletName] = useState("");
+  const [outletSavedName, setOutletSavedName] = useState<string | null>(null);
+  const [outletPhoto, setOutletPhoto] = useState<File | null>(null);
+  const [outletPreviewUrl, setOutletPreviewUrl] = useState<string | null>(null);
+  const [outletCapturedAt, setOutletCapturedAt] = useState<Date | null>(null);
+  const [outletCompressing, setOutletCompressing] = useState(false);
+  const [savingOutlet, setSavingOutlet] = useState(false);
+  const [outletError, setOutletError] = useState<string | null>(null);
 
   const requestLocation = async () => {
     setLocatingGps(true);
@@ -130,18 +145,104 @@ export default function CapturePage() {
     return { ok: true };
   };
 
+  const selectedBrandRequiresOutlet = brand
+    ? (cache?.brands.find((b) => b.name === brand)?.requiresOutletPhoto ?? false)
+    : false;
+  const trimmedOutletName = outletName.trim();
+  const outletRequirementMet =
+    !selectedBrandRequiresOutlet || (trimmedOutletName.length > 0 && outletSavedName === trimmedOutletName);
+
+  const handleOutletTakePhoto = () => outletFileInputRef.current?.click();
+
+  const handleOutletFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target;
+    const rawFile = input.files?.[0];
+    if (!rawFile) return;
+
+    setOutletError(null);
+    setOutletCapturedAt(new Date());
+    setOutletCompressing(true);
+
+    let file: File;
+    try {
+      file = await compressImageIfNeeded(rawFile);
+    } catch (err) {
+      setOutletCompressing(false);
+      setOutletError(err instanceof Error ? err.message : "This photo couldn't be opened. Please retake it or choose a different one.");
+      input.value = "";
+      return;
+    }
+    setOutletCompressing(false);
+
+    setOutletPhoto(file);
+    setOutletPreviewUrl(URL.createObjectURL(file));
+
+    void requestLocation();
+  };
+
+  const canSaveOutlet =
+    outletPhoto !== null &&
+    !locatingGps &&
+    brand !== null &&
+    shopType !== null &&
+    trimmedOutletName.length > 0;
+
+  const handleSaveOutlet = async () => {
+    if (!canSaveOutlet || !outletPhoto || !outletCapturedAt || !brand || !shopType) return;
+
+    setSavingOutlet(true);
+    setOutletError(null);
+
+    try {
+      await addPendingUpload({
+        clientQueueId: crypto.randomUUID(),
+        photoBuffer: await outletPhoto.arrayBuffer(),
+        brand: tagRef(brand),
+        kind: "outlet",
+        isGoodExecution: true,
+        category: null,
+        posmType: null,
+        skuType: null,
+        shopType: tagRef(shopType),
+        outletName: trimmedOutletName,
+        gpsLat: gps?.lat ?? null,
+        gpsLng: gps?.lng ?? null,
+        address: gps ? formatRawCoords(gps.lat, gps.lng) : null,
+        surroundingRemarks: null,
+        otherRemarks: null,
+        shelfVacancy: null,
+        capturedAt: outletCapturedAt.toISOString(),
+        status: "queued",
+        attempts: 0,
+        lastError: null,
+        nextRetryAt: null,
+      });
+
+      recordTagUse("brand", brand);
+      recordTagUse("shopType", shopType);
+      notifyQueueChanged();
+      void drainUploadQueue();
+
+      setOutletSavedName(trimmedOutletName);
+      setOutletPhoto(null);
+      setOutletPreviewUrl(null);
+      setOutletCapturedAt(null);
+    } finally {
+      setSavingOutlet(false);
+    }
+  };
+
   const canSave =
     photo !== null &&
     !locatingGps &&
     brand !== null &&
     shopType !== null &&
     isGoodExecution !== null &&
+    outletRequirementMet &&
     (kind === "posm" ? posmType !== null : kind === "category" ? category !== null : skuType !== null);
 
   const handleSave = async () => {
     if (!canSave || !photo || !capturedAt || !brand || !shopType || isGoodExecution === null) return;
-
-    const tagRef = (name: string): TagRef => ({ id: null, name });
 
     await addPendingUpload({
       clientQueueId: crypto.randomUUID(),
@@ -153,6 +254,7 @@ export default function CapturePage() {
       posmType: kind === "posm" && posmType ? tagRef(posmType) : null,
       skuType: kind === "sku" && skuType ? tagRef(skuType) : null,
       shopType: tagRef(shopType),
+      outletName: selectedBrandRequiresOutlet ? trimmedOutletName : null,
       gpsLat: gps?.lat ?? null,
       gpsLng: gps?.lng ?? null,
       address: gps ? formatRawCoords(gps.lat, gps.lng) : null,
@@ -211,6 +313,14 @@ export default function CapturePage() {
         accept="image/*"
         capture="environment"
         onChange={handleFileChange}
+        className="hidden"
+      />
+      <input
+        ref={outletFileInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handleOutletFileChange}
         className="hidden"
       />
 
@@ -281,6 +391,103 @@ export default function CapturePage() {
         />
       </div>
 
+      <div id="tour-shop-type">
+        <ChipGroup
+          label="Shop Type"
+          options={shopTypeOptions}
+          selected={shopType}
+          onSelect={setShopType}
+          onAddNew={(name) => handleAddNewTag("shopType", name)}
+          onDelete={(option) => handleDeleteTag("shopType", option)}
+        />
+      </div>
+
+      {selectedBrandRequiresOutlet && (
+        <div className="flex flex-col gap-3 rounded-xl border border-blue-300 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950">
+          <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+            {brand} requires an outlet photo and name once per outlet visit.
+          </p>
+
+          {outletRequirementMet ? (
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm text-blue-800 dark:text-blue-200">
+                ✓ Outlet: <span className="font-medium">{outletSavedName}</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setOutletName("");
+                  setOutletSavedName(null);
+                }}
+                className="text-xs font-medium text-blue-700 underline dark:text-blue-300"
+              >
+                Change outlet
+              </button>
+            </div>
+          ) : (
+            <>
+              <label className="flex flex-col gap-1">
+                <span className="text-sm font-medium text-blue-900 dark:text-blue-100">Outlet name</span>
+                <input
+                  value={outletName}
+                  onChange={(e) => setOutletName(e.target.value)}
+                  placeholder="Name of this outlet"
+                  className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 focus:border-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                />
+              </label>
+
+              {outletCompressing ? (
+                <div className="flex aspect-[4/3] max-h-[30vh] w-full flex-col items-center justify-center gap-2 rounded-2xl bg-blue-600 text-white">
+                  <Camera className="size-8" strokeWidth={1.75} />
+                  <span className="text-lg font-semibold">Processing photo…</span>
+                </div>
+              ) : outletPreviewUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={outletPreviewUrl}
+                  alt="Outlet"
+                  className="aspect-[4/3] max-h-[30vh] w-full rounded-2xl object-cover"
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleOutletTakePhoto}
+                  className="flex aspect-[4/3] max-h-[30vh] w-full flex-col items-center justify-center gap-2 rounded-2xl bg-blue-600 text-white active:bg-blue-700"
+                >
+                  <Camera className="size-8" strokeWidth={1.75} />
+                  <span className="text-lg font-semibold">Take outside photo of outlet</span>
+                </button>
+              )}
+
+              {outletPreviewUrl && (
+                <button
+                  type="button"
+                  onClick={handleOutletTakePhoto}
+                  className="rounded-xl bg-gray-100 py-2 text-sm font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                >
+                  Retake outlet photo
+                </button>
+              )}
+
+              {!shopType && (
+                <p className="text-sm text-blue-800 dark:text-blue-200">Select a shop type below first.</p>
+              )}
+
+              {outletError && <p className="text-sm font-medium text-red-600">{outletError}</p>}
+
+              <button
+                type="button"
+                disabled={!canSaveOutlet || savingOutlet}
+                onClick={handleSaveOutlet}
+                className="rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white disabled:opacity-40"
+              >
+                {savingOutlet ? "Saving…" : "Save Outlet Photo"}
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
       <div id="tour-execution">
         <ExecutionQualityToggle isGoodExecution={isGoodExecution} onChange={setIsGoodExecution} />
       </div>
@@ -317,17 +524,6 @@ export default function CapturePage() {
           onDelete={(option) => handleDeleteTag("skuType", option)}
         />
       )}
-
-      <div id="tour-shop-type">
-        <ChipGroup
-          label="Shop Type"
-          options={shopTypeOptions}
-          selected={shopType}
-          onSelect={setShopType}
-          onAddNew={(name) => handleAddNewTag("shopType", name)}
-          onDelete={(option) => handleDeleteTag("shopType", option)}
-        />
-      </div>
 
       <div className="flex flex-col gap-2">
         <label htmlFor="surroundingRemarks" className="text-sm font-medium text-gray-600 dark:text-gray-400">

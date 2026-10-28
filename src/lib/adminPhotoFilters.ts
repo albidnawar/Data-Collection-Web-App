@@ -23,7 +23,7 @@ export function buildPhotoWhere(params: PhotoFilterParams): Prisma.PhotoRecordWh
   if (params.repId) where.repId = params.repId;
   if (params.brandId) where.brandId = params.brandId;
   if (params.shopTypeId) where.shopTypeId = params.shopTypeId;
-  if (params.kind && ["posm", "category", "sku"].includes(params.kind)) {
+  if (params.kind && ["posm", "category", "sku", "outlet"].includes(params.kind)) {
     where.kind = params.kind as Prisma.EnumPhotoKindFilter["equals"];
   }
   if (params.status && ["pending", "uploading", "uploaded", "failed"].includes(params.status)) {

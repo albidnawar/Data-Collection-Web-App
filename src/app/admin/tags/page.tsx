@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { toggleTagActiveAction } from "./actions";
+import { toggleTagActiveAction, toggleBrandRequiresOutletPhotoAction } from "./actions";
 import { AddTagForm } from "@/components/admin/AddTagForm";
 import { RenameTagForm } from "@/components/admin/RenameTagForm";
 import { TagDeleteControl } from "@/components/admin/TagDeleteControl";
@@ -10,9 +10,22 @@ interface TagRow {
   id: string;
   name: string;
   active: boolean;
+  requiresOutletPhoto?: boolean;
 }
 
-function TagSection({ title, type, label, items }: { title: string; type: TagType; label: string; items: TagRow[] }) {
+function TagSection({
+  title,
+  type,
+  label,
+  items,
+  showOutletToggle,
+}: {
+  title: string;
+  type: TagType;
+  label: string;
+  items: TagRow[];
+  showOutletToggle?: boolean;
+}) {
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
       <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
@@ -26,6 +39,17 @@ function TagSection({ title, type, label, items }: { title: string; type: TagTyp
                 {item.active ? "Active" : "Inactive"}
               </button>
             </form>
+            {showOutletToggle && (
+              <form action={toggleBrandRequiresOutletPhotoAction.bind(null, item.id, !item.requiresOutletPhoto)}>
+                <button
+                  type="submit"
+                  title="When on, reps must capture an outlet photo and name once per outlet visit before saving other photos for this brand"
+                  className={`text-xs font-medium ${item.requiresOutletPhoto ? "text-blue-600" : "text-gray-400"}`}
+                >
+                  {item.requiresOutletPhoto ? "Requires outlet photo" : "No outlet photo required"}
+                </button>
+              </form>
+            )}
             <TagDeleteControl
               type={type}
               id={item.id}
@@ -56,7 +80,7 @@ export default async function AdminTagsPage() {
       <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Tags</h1>
       <RerunSyncButton pendingCount={pendingCount} />
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <TagSection title="Brands" type="brand" label="brand" items={brands} />
+        <TagSection title="Brands" type="brand" label="brand" items={brands} showOutletToggle />
         <TagSection title="Categories" type="category" label="category" items={categories} />
         <TagSection title="POSM Types" type="posmType" label="POSM type" items={posmTypes} />
         <TagSection title="SKU Types" type="skuType" label="SKU type" items={skuTypes} />

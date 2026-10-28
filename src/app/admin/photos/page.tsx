@@ -140,6 +140,7 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
             <option value="posm">POSM</option>
             <option value="category">Category Shelf Display</option>
             <option value="sku">SKU</option>
+            <option value="outlet">Outlet</option>
           </select>
         </label>
         <label className="flex flex-col gap-1 text-xs text-gray-500">
@@ -182,6 +183,7 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
               <th className="px-3 py-2">Captured</th>
               <th className="px-3 py-2">Rep</th>
               <th className="px-3 py-2">Kind</th>
+              <th className="px-3 py-2">Outlet</th>
               <th className="px-3 py-2">Brand</th>
               <th className="px-3 py-2">Type</th>
               <th className="px-3 py-2">Shop type</th>
@@ -214,8 +216,15 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
                 </td>
                 <td className="px-3 py-2">{r.rep.name}</td>
                 <td className="px-3 py-2">
-                  {r.kind === "posm" ? "POSM" : r.kind === "category" ? "Category Shelf Display" : "SKU"}
+                  {r.kind === "posm"
+                    ? "POSM"
+                    : r.kind === "category"
+                      ? "Category Shelf Display"
+                      : r.kind === "outlet"
+                        ? "Outlet"
+                        : "SKU"}
                 </td>
+                <td className="px-3 py-2">{r.outletName ?? "-"}</td>
                 <PhotoTagsCells
                   photoId={r.id}
                   kind={r.kind}
@@ -270,7 +279,7 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
             })}
             {records.length === 0 && (
               <tr>
-                <td colSpan={16} className="px-3 py-6 text-center text-gray-500">
+                <td colSpan={17} className="px-3 py-6 text-center text-gray-500">
                   No photos match these filters.
                 </td>
               </tr>

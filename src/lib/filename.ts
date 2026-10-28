@@ -11,6 +11,7 @@ const KIND_FILENAME_PART: Record<PhotoKind, string> = {
   posm: "POSM",
   category: "CategoryShelfDisplay",
   sku: "SKU",
+  outlet: "Outlet",
 };
 
 export function sanitizeForFilename(value: string): string {

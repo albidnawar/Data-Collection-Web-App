@@ -6,7 +6,7 @@ export function isTagType(value: unknown): value is TagType {
   return typeof value === "string" && (TAG_TYPES as readonly string[]).includes(value);
 }
 
-export const PHOTO_KINDS = ["posm", "category", "sku"] as const;
+export const PHOTO_KINDS = ["posm", "category", "sku", "outlet"] as const;
 
 export type PhotoKind = (typeof PHOTO_KINDS)[number];
 

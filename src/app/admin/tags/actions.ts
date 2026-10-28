@@ -74,6 +74,12 @@ export async function toggleTagActiveAction(type: string, id: string, active: bo
   revalidatePath("/admin/tags");
 }
 
+export async function toggleBrandRequiresOutletPhotoAction(id: string, requiresOutletPhoto: boolean) {
+  await requireAdminId();
+  await prisma.brand.update({ where: { id }, data: { requiresOutletPhoto } });
+  revalidatePath("/admin/tags");
+}
+
 export async function renameTagAction(
   type: string,
   id: string,

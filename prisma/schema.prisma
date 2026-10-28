@@ -21,6 +21,7 @@ enum PhotoKind {
   posm
   category
   sku
+  outlet
 }
 
 model Rep {
@@ -48,6 +49,10 @@ model Brand {
   driveFolderId             String?
   badExecutionDriveFolderId String?
   active                    Boolean  @default(true)
+  // When set, the capture app requires reps to take an outside/storefront
+  // photo and name the outlet once per outlet visit before they can save any
+  // SKU/POSM/category photo for this brand.
+  requiresOutletPhoto Boolean  @default(false)
   createdAt     DateTime @default(now())
   createdById   String?
   createdBy     Rep?     @relation("BrandCreatedBy", fields: [createdById], references: [id])
@@ -147,6 +152,11 @@ model PhotoRecord {
   shopType   ShopType @relation(fields: [shopTypeId], references: [id])
 
   shopName String?
+
+  // Free-text outlet name, captured once per outlet visit for brands with
+  // Brand.requiresOutletPhoto set and carried onto every photo taken at that
+  // outlet (including the outlet's own outside/storefront photo, kind "outlet").
+  outletName String?
 
   gpsLat  Float?
   gpsLng  Float?
