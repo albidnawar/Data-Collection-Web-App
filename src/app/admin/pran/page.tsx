@@ -87,8 +87,30 @@ export default async function AdminPranPage(props: PageProps<"/admin/pran">) {
     return match;
   };
 
+  // An outlet's own outside photo already appears in the "Outlet Photo"
+  // column of every product row it's matched to - so once at least one
+  // product photo exists for that visit, drop its standalone outlet row to
+  // avoid showing the same outlet shot twice. Checked against every product
+  // photo for these reps/outlets (not just this page) so the row disappears
+  // as soon as any product photo exists for that visit, wherever it lands.
+  const productRecordsForMatching =
+    repIds.length > 0 && outletNames.length > 0
+      ? await prisma.photoRecord.findMany({
+          where: { kind: { in: ["posm", "category", "sku"] }, repId: { in: repIds }, outletName: { in: outletNames } },
+          select: { repId: true, outletName: true, capturedAt: true },
+        })
+      : [];
+
+  const usedOutletIds = new Set<string>();
+  for (const p of productRecordsForMatching) {
+    const visit = findOutletVisit(p.repId, p.outletName, p.capturedAt);
+    if (visit) usedOutletIds.add(visit.id);
+  }
+
+  const visibleRecords = records.filter((r) => !(r.kind === "outlet" && usedOutletIds.has(r.id)));
+
   const lightboxPhotos = new Map<string, { id: string; filename: string }>();
-  for (const r of records) lightboxPhotos.set(r.id, { id: r.id, filename: r.filename });
+  for (const r of visibleRecords) lightboxPhotos.set(r.id, { id: r.id, filename: r.filename });
   for (const o of outletRecords) lightboxPhotos.set(o.id, { id: o.id, filename: o.filename });
 
   const buildQuery = (extra: Record<string, string> = {}) =>
@@ -170,7 +192,7 @@ export default async function AdminPranPage(props: PageProps<"/admin/pran">) {
               </tr>
             </thead>
             <tbody>
-              {records.map((r) => {
+              {visibleRecords.map((r) => {
                 const isOutletKind = r.kind === "outlet";
                 const typeName =
                   r.kind === "posm" ? r.posmType?.name : r.kind === "category" ? r.category?.name : r.kind === "sku" ? r.skuType?.name : undefined;
@@ -258,7 +280,7 @@ export default async function AdminPranPage(props: PageProps<"/admin/pran">) {
                   </tr>
                 );
               })}
-              {records.length === 0 && (
+              {visibleRecords.length === 0 && (
                 <tr>
                   <td colSpan={16} className="px-3 py-6 text-center text-gray-500">
                     No Pran photos match these filters.
