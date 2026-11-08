@@ -85,7 +85,12 @@ export function RepMovementMap({ points, reps }: { points: RepMovementPoint[]; r
     importLibrary("maps")
       .then(({ Map }) => {
         if (cancelled || !mapDivRef.current) return;
-        mapRef.current = new Map(mapDivRef.current, { center: DEFAULT_CENTER, zoom: DEFAULT_ZOOM });
+        // Capped so fitBounds (and manual zooming) never requests a zoom
+        // level past what has tile coverage for a given area - without this,
+        // zooming in tight on a cluster of nearby points, or on areas outside
+        // major cities, could silently snap back to the nearest zoom that
+        // actually has tiles, which looks like the map "zooming itself out".
+        mapRef.current = new Map(mapDivRef.current, { center: DEFAULT_CENTER, zoom: DEFAULT_ZOOM, maxZoom: 19 });
         infoWindowRef.current = new google.maps.InfoWindow();
         setReady(true);
       })
