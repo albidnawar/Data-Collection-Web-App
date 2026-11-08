@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { AddRepForm } from "@/components/admin/AddRepForm";
 import { RepRowControls } from "@/components/admin/RepRowControls";
@@ -9,7 +10,12 @@ export default async function AdminRepsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Reps</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Reps</h1>
+        <Link href="/admin/reps/map" className="text-sm font-medium text-blue-600">
+          View movement map
+        </Link>
+      </div>
 
       <AddRepForm />
 
