@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { buildPhotoWhere } from "@/lib/adminPhotoFilters";
+import { buildPhotoWhere, getAvailablePhotoFilterOptions } from "@/lib/adminPhotoFilters";
 import { LocalDateTime } from "@/components/admin/LocalDateTime";
 import { DeletePhotoButton } from "@/components/admin/DeletePhotoButton";
 import { PhotoThumbnail } from "@/components/admin/PhotoThumbnail";
@@ -49,8 +49,20 @@ export default async function AdminPranPage(props: PageProps<"/admin/pran">) {
       include: { rep: true, brand: true, category: true, posmType: true, skuType: true, shopType: true },
     }),
   ]);
+  // Run after the batch above finishes rather than alongside it — it issues
+  // its own sequence of queries, and the local dev Postgres connection pool
+  // can't take all of these running at once.
+  const available = await getAvailablePhotoFilterOptions(filters, { rep: { role: "pran" } });
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  // Same cascading-availability behavior as the main Photo log: each
+  // dropdown only offers choices reachable given the other active filters,
+  // but the currently selected value is always kept visible.
+  const visibleReps = reps.filter((r) => available.repIds.has(r.id) || r.id === filters.repId);
+  const visibleBrands = brands.filter((b) => available.brandIds.has(b.id) || b.id === filters.brandId);
+  const pranRelationAvailable = (value: "pran" | "competitor") =>
+    available.pranRelations.has(value) || value === filters.pranRelation;
 
   // Match each product photo to the outlet's own outside photo from the same
   // visit: same rep + outlet name, the latest outlet-kind shot taken at or
@@ -137,7 +149,7 @@ export default async function AdminPranPage(props: PageProps<"/admin/pran">) {
           Rep
           <select name="repId" defaultValue={filters.repId ?? ""} className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800">
             <option value="">All</option>
-            {reps.map((r) => (
+            {visibleReps.map((r) => (
               <option key={r.id} value={r.id}>{r.name}</option>
             ))}
           </select>
@@ -146,7 +158,7 @@ export default async function AdminPranPage(props: PageProps<"/admin/pran">) {
           Brand
           <select name="brandId" defaultValue={filters.brandId ?? ""} className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800">
             <option value="">All</option>
-            {brands.map((b) => (
+            {visibleBrands.map((b) => (
               <option key={b.id} value={b.id}>{b.name}</option>
             ))}
           </select>
@@ -155,8 +167,8 @@ export default async function AdminPranPage(props: PageProps<"/admin/pran">) {
           Pran / Competitor
           <select name="pranRelation" defaultValue={filters.pranRelation ?? ""} className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800">
             <option value="">All</option>
-            <option value="pran">Pran</option>
-            <option value="competitor">Competitor</option>
+            {pranRelationAvailable("pran") && <option value="pran">Pran</option>}
+            {pranRelationAvailable("competitor") && <option value="competitor">Competitor</option>}
           </select>
         </label>
         <label className="flex flex-col gap-1 text-xs text-gray-500">

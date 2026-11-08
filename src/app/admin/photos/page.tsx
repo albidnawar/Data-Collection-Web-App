@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { buildPhotoWhere } from "@/lib/adminPhotoFilters";
+import { buildPhotoWhere, getAvailablePhotoFilterOptions } from "@/lib/adminPhotoFilters";
 import { LocalDateTime } from "@/components/admin/LocalDateTime";
 import { DeletePhotoButton } from "@/components/admin/DeletePhotoButton";
 import { FixCorruptedPhotosButton } from "@/components/admin/FixCorruptedPhotosButton";
@@ -9,6 +9,27 @@ import { PhotoTagsCells } from "@/components/admin/PhotoTagsCells";
 import { PhotoLightboxProvider } from "@/components/admin/PhotoLightbox";
 
 const PAGE_SIZE = 50;
+
+const KIND_OPTIONS = [
+  { value: "posm", label: "POSM" },
+  { value: "category", label: "Category Shelf Display" },
+  { value: "sku", label: "SKU" },
+  { value: "outlet", label: "Outlet" },
+];
+const STATUS_OPTIONS = [
+  { value: "uploaded", label: "Uploaded" },
+  { value: "pending", label: "Pending" },
+  { value: "uploading", label: "Uploading" },
+  { value: "failed", label: "Failed" },
+];
+const EXECUTION_OPTIONS = [
+  { value: "good", label: "Good" },
+  { value: "bad", label: "Bad" },
+];
+const SHELF_VACANCY_OPTIONS = [
+  { value: "yes", label: "Yes" },
+  { value: "no", label: "No" },
+];
 
 export default async function AdminPhotosPage(props: PageProps<"/admin/photos">) {
   const sp = await props.searchParams;
@@ -51,8 +72,27 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
       include: { rep: true, brand: true },
     }),
   ]);
+  // Run after the batch above finishes rather than alongside it — it issues
+  // its own sequence of queries, and the local dev Postgres connection pool
+  // can't take all of these running at once.
+  const available = await getAvailablePhotoFilterOptions(filters);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  // Each dropdown only offers choices that still match at least one record
+  // once combined with every OTHER active filter — but the currently
+  // selected value always stays visible, even if it now yields zero rows.
+  const visibleReps = reps.filter((r) => available.repIds.has(r.id) || r.id === filters.repId);
+  const visibleBrands = brands.filter((b) => available.brandIds.has(b.id) || b.id === filters.brandId);
+  const visibleShopTypes = shopTypes.filter((s) => available.shopTypeIds.has(s.id) || s.id === filters.shopTypeId);
+  const visibleKinds = KIND_OPTIONS.filter((o) => available.kinds.has(o.value) || o.value === filters.kind);
+  const visibleStatuses = STATUS_OPTIONS.filter((o) => available.statuses.has(o.value) || o.value === filters.status);
+  const visibleExecutions = EXECUTION_OPTIONS.filter(
+    (o) => available.goodExecutions.has(o.value === "good") || o.value === filters.executionQuality,
+  );
+  const visibleShelfVacancies = SHELF_VACANCY_OPTIONS.filter(
+    (o) => available.shelfVacancies.has(o.value === "yes") || o.value === filters.shelfVacancy,
+  );
 
   const buildQuery = (extra: Record<string, string> = {}) =>
     new URLSearchParams(
@@ -110,7 +150,7 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
           Rep
           <select name="repId" defaultValue={filters.repId ?? ""} className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800">
             <option value="">All</option>
-            {reps.map((r) => (
+            {visibleReps.map((r) => (
               <option key={r.id} value={r.id}>{r.name}</option>
             ))}
           </select>
@@ -119,7 +159,7 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
           Brand
           <select name="brandId" defaultValue={filters.brandId ?? ""} className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800">
             <option value="">All</option>
-            {brands.map((b) => (
+            {visibleBrands.map((b) => (
               <option key={b.id} value={b.id}>{b.name}</option>
             ))}
           </select>
@@ -128,7 +168,7 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
           Shop type
           <select name="shopTypeId" defaultValue={filters.shopTypeId ?? ""} className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800">
             <option value="">All</option>
-            {shopTypes.map((s) => (
+            {visibleShopTypes.map((s) => (
               <option key={s.id} value={s.id}>{s.name}</option>
             ))}
           </select>
@@ -137,36 +177,36 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
           Kind
           <select name="kind" defaultValue={filters.kind ?? ""} className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800">
             <option value="">All</option>
-            <option value="posm">POSM</option>
-            <option value="category">Category Shelf Display</option>
-            <option value="sku">SKU</option>
-            <option value="outlet">Outlet</option>
+            {visibleKinds.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
           </select>
         </label>
         <label className="flex flex-col gap-1 text-xs text-gray-500">
           Status
           <select name="status" defaultValue={filters.status ?? ""} className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800">
             <option value="">All</option>
-            <option value="uploaded">Uploaded</option>
-            <option value="pending">Pending</option>
-            <option value="uploading">Uploading</option>
-            <option value="failed">Failed</option>
+            {visibleStatuses.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
           </select>
         </label>
         <label className="flex flex-col gap-1 text-xs text-gray-500">
           Execution
           <select name="executionQuality" defaultValue={filters.executionQuality ?? ""} className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800">
             <option value="">All</option>
-            <option value="good">Good</option>
-            <option value="bad">Bad</option>
+            {visibleExecutions.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
           </select>
         </label>
         <label className="flex flex-col gap-1 text-xs text-gray-500">
           Shelf vacancy
           <select name="shelfVacancy" defaultValue={filters.shelfVacancy ?? ""} className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800">
             <option value="">All</option>
-            <option value="yes">Yes</option>
-            <option value="no">No</option>
+            {visibleShelfVacancies.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
           </select>
         </label>
         <button type="submit" className="self-end rounded-lg bg-gray-900 px-4 py-1.5 text-sm font-medium text-white dark:bg-gray-100 dark:text-gray-900">
