@@ -437,110 +437,7 @@ function PhotoEditPanel({
           <p className="text-xs text-gray-500 dark:text-gray-400">Outlet: {photo.outletName}</p>
         )}
 
-        <label className={labelClass}>
-          Kind
-          <select
-            value={draftKind}
-            onChange={(e) => changeDraftKind(e.target.value as PhotoKind)}
-            className={selectClass}
-          >
-            {PHOTO_KINDS.map((k) => (
-              <option key={k} value={k}>
-                {KIND_LABELS[k]}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        {draftKind !== "outlet" && (
-          <>
-            <label className={labelClass}>
-              Brand
-              <select value={draftBrandId} onChange={(e) => setDraftBrandId(e.target.value)} className={selectClass}>
-                <option value="">Select brand…</option>
-                {options.brands.map((b) => (
-                  <option key={b.id} value={b.id}>{b.name}</option>
-                ))}
-              </select>
-            </label>
-
-            <label className={labelClass}>
-              Type
-              <select value={draftTypeId} onChange={(e) => setDraftTypeId(e.target.value)} className={selectClass}>
-                <option value="">-</option>
-                {activeTypeOptions.map((t) => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
-            </label>
-
-            <label className={labelClass}>
-              Shop type
-              <select value={draftShopTypeId} onChange={(e) => setDraftShopTypeId(e.target.value)} className={selectClass}>
-                <option value="">Select shop type…</option>
-                {options.shopTypes.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
-            </label>
-
-            <label className={labelClass}>
-              Execution
-              <select
-                value={draftIsGood ? "good" : "bad"}
-                onChange={(e) => setDraftIsGood(e.target.value === "good")}
-                className={selectClass}
-              >
-                <option value="good">Good</option>
-                <option value="bad">Bad</option>
-              </select>
-            </label>
-          </>
-        )}
-
-        <label className={labelClass}>
-          Shelf vacancy
-          <select value={draftShelfVacancy} onChange={(e) => setDraftShelfVacancy(e.target.value)} className={selectClass}>
-            <option value="">Not recorded</option>
-            <option value="yes">Yes</option>
-            <option value="no">No</option>
-          </select>
-        </label>
-
-        <label className={labelClass}>
-          Surrounding remarks
-          <textarea
-            value={draftSurrounding}
-            onChange={(e) => setDraftSurrounding(e.target.value)}
-            rows={2}
-            className={textareaClass}
-          />
-        </label>
-
-        <label className={labelClass}>
-          Other remarks
-          <textarea
-            value={draftOther}
-            onChange={(e) => setDraftOther(e.target.value)}
-            rows={2}
-            className={textareaClass}
-          />
-        </label>
-
-        <div className="mt-1 flex items-center gap-2">
-          <button
-            type="button"
-            disabled={pending}
-            onClick={() => void save()}
-            className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-          >
-            {pending ? "Saving…" : "Save"}
-          </button>
-          {saved && <span className="text-xs font-medium text-green-600">Saved</span>}
-          {error && <span className="text-xs font-medium text-red-600">{error}</span>}
-        </div>
-
-        <div className="mt-2 flex flex-col gap-2 border-t border-gray-100 pt-3 dark:border-gray-800">
+        <div className="flex flex-col gap-2 border-b border-gray-100 pb-3 dark:border-gray-800">
           {!cropMode ? (
             <button
               type="button"
@@ -652,6 +549,109 @@ function PhotoEditPanel({
               </div>
             </div>
           )}
+        </div>
+
+        <label className={labelClass}>
+          Kind
+          <select
+            value={draftKind}
+            onChange={(e) => changeDraftKind(e.target.value as PhotoKind)}
+            className={selectClass}
+          >
+            {PHOTO_KINDS.map((k) => (
+              <option key={k} value={k}>
+                {KIND_LABELS[k]}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {draftKind !== "outlet" && (
+          <>
+            <label className={labelClass}>
+              Brand
+              <select value={draftBrandId} onChange={(e) => setDraftBrandId(e.target.value)} className={selectClass}>
+                <option value="">Select brand…</option>
+                {options.brands.map((b) => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+            </label>
+
+            <label className={labelClass}>
+              Type
+              <select value={draftTypeId} onChange={(e) => setDraftTypeId(e.target.value)} className={selectClass}>
+                <option value="">-</option>
+                {activeTypeOptions.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </label>
+
+            <label className={labelClass}>
+              Shop type
+              <select value={draftShopTypeId} onChange={(e) => setDraftShopTypeId(e.target.value)} className={selectClass}>
+                <option value="">Select shop type…</option>
+                {options.shopTypes.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </label>
+
+            <label className={labelClass}>
+              Execution
+              <select
+                value={draftIsGood ? "good" : "bad"}
+                onChange={(e) => setDraftIsGood(e.target.value === "good")}
+                className={selectClass}
+              >
+                <option value="good">Good</option>
+                <option value="bad">Bad</option>
+              </select>
+            </label>
+          </>
+        )}
+
+        <label className={labelClass}>
+          Shelf vacancy
+          <select value={draftShelfVacancy} onChange={(e) => setDraftShelfVacancy(e.target.value)} className={selectClass}>
+            <option value="">Not recorded</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+        </label>
+
+        <label className={labelClass}>
+          Surrounding remarks
+          <textarea
+            value={draftSurrounding}
+            onChange={(e) => setDraftSurrounding(e.target.value)}
+            rows={2}
+            className={textareaClass}
+          />
+        </label>
+
+        <label className={labelClass}>
+          Other remarks
+          <textarea
+            value={draftOther}
+            onChange={(e) => setDraftOther(e.target.value)}
+            rows={2}
+            className={textareaClass}
+          />
+        </label>
+
+        <div className="mt-1 flex items-center gap-2">
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => void save()}
+            className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+          >
+            {pending ? "Saving…" : "Save"}
+          </button>
+          {saved && <span className="text-xs font-medium text-green-600">Saved</span>}
+          {error && <span className="text-xs font-medium text-red-600">{error}</span>}
         </div>
 
         <div className="mt-2 flex items-center justify-between border-t border-gray-100 pt-3 dark:border-gray-800">
