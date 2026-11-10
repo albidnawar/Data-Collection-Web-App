@@ -20,66 +20,61 @@ function startOfDay(daysAgo: number): Date {
 // to /admin/photos, which a public viewer can't open) and the failed-uploads
 // detail list (raw error messages aren't meant for an outside audience).
 export async function OverviewContent({ isPublic = false }: { isPublic?: boolean }) {
-  const [
-    totalToday,
-    totalWeek,
-    totalAllTime,
-    pendingOrFailedCount,
-    activeRepsCount,
-    topBrandsRaw,
-    topShopTypesRaw,
-    badExecutionTopBrandsRaw,
-    brandKindCountsRaw,
-    dailyRaw,
-    failedRecent,
-  ] = await Promise.all([
+  // Split across two batches rather than one 11-query Promise.all — that
+  // many queries at once can exceed the local dev Postgres connection pool
+  // (capped at 10), surfacing as a "Server has closed the connection" error.
+  const [totalToday, totalWeek, totalAllTime, pendingOrFailedCount, activeRepsCount] = await Promise.all([
     prisma.photoRecord.count({ where: { status: "uploaded", uploadedAt: { gte: startOfDay(0) } } }),
     prisma.photoRecord.count({ where: { status: "uploaded", uploadedAt: { gte: startOfDay(6) } } }),
     prisma.photoRecord.count({ where: { status: "uploaded" } }),
     prisma.photoRecord.count({ where: { status: { in: ["pending", "uploading", "failed"] } } }),
     prisma.rep.count({ where: { active: true } }),
-    // The outlet's own outside photo (kind "outlet") has no brand/shop type —
-    // excluded from these brand/shop-type breakdowns, not just a product display.
-    prisma.photoRecord.groupBy({
-      by: ["brandId"],
-      where: { status: "uploaded", brandId: { not: null } },
-      _count: { _all: true },
-      orderBy: { _count: { brandId: "desc" } },
-      take: 5,
-    }),
-    prisma.photoRecord.groupBy({
-      by: ["shopTypeId"],
-      where: { status: "uploaded", shopTypeId: { not: null } },
-      _count: { _all: true },
-      orderBy: { _count: { shopTypeId: "desc" } },
-      take: 5,
-    }),
-    prisma.photoRecord.groupBy({
-      by: ["brandId"],
-      where: { status: "uploaded", isGoodExecution: false, brandId: { not: null } },
-      _count: { _all: true },
-      orderBy: { _count: { brandId: "desc" } },
-      take: 5,
-    }),
-    prisma.photoRecord.groupBy({
-      by: ["brandId", "kind"],
-      where: { status: "uploaded", kind: { in: ["posm", "category", "sku"] } },
-      _count: { _all: true },
-    }),
-    prisma.$queryRaw<Array<{ day: Date; count: bigint }>>`
+  ]);
+
+  const [topBrandsRaw, topShopTypesRaw, badExecutionTopBrandsRaw, brandKindCountsRaw, dailyRaw, failedRecent] =
+    await Promise.all([
+      // The outlet's own outside photo (kind "outlet") has no brand/shop type
+      // — excluded from these brand/shop-type breakdowns, not just a product display.
+      prisma.photoRecord.groupBy({
+        by: ["brandId"],
+        where: { status: "uploaded", brandId: { not: null } },
+        _count: { _all: true },
+        orderBy: { _count: { brandId: "desc" } },
+        take: 5,
+      }),
+      prisma.photoRecord.groupBy({
+        by: ["shopTypeId"],
+        where: { status: "uploaded", shopTypeId: { not: null } },
+        _count: { _all: true },
+        orderBy: { _count: { shopTypeId: "desc" } },
+        take: 5,
+      }),
+      prisma.photoRecord.groupBy({
+        by: ["brandId"],
+        where: { status: "uploaded", isGoodExecution: false, brandId: { not: null } },
+        _count: { _all: true },
+        orderBy: { _count: { brandId: "desc" } },
+        take: 5,
+      }),
+      prisma.photoRecord.groupBy({
+        by: ["brandId", "kind"],
+        where: { status: "uploaded", kind: { in: ["posm", "category", "sku"] } },
+        _count: { _all: true },
+      }),
+      prisma.$queryRaw<Array<{ day: Date; count: bigint }>>`
       SELECT date_trunc('day', "uploadedAt") AS day, COUNT(*)::bigint AS count
       FROM "PhotoRecord"
       WHERE "status" = 'uploaded' AND "uploadedAt" >= ${startOfDay(13)}
       GROUP BY day
       ORDER BY day ASC
     `,
-    prisma.photoRecord.findMany({
-      where: { status: "failed" },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-      include: { brand: true, rep: true },
-    }),
-  ]);
+      prisma.photoRecord.findMany({
+        where: { status: "failed" },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        include: { brand: true, rep: true },
+      }),
+    ]);
 
   const [brands, shopTypes] = await Promise.all([
     prisma.brand.findMany({
