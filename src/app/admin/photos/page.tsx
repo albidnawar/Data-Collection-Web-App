@@ -234,6 +234,7 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
             shelfVacancy: r.shelfVacancy,
             surroundingRemarks: r.surroundingRemarks,
             otherRemarks: r.otherRemarks,
+            repIsPranRole: r.rep.role === "pran",
           };
         })}
         editOptions={{ brands, shopTypes, categories, posmTypes, skuTypes }}
