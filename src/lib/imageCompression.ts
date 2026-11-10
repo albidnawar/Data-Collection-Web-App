@@ -17,6 +17,28 @@ function canvasToJpegBlob(canvas: HTMLCanvasElement, quality: number): Promise<B
 }
 
 /**
+ * Reads an image file's displayed (EXIF-orientation-corrected) dimensions
+ * without fully decoding its pixels into memory — an <img> element only
+ * needs to parse the header to know its natural size, unlike
+ * createImageBitmap, which must allocate and decode the full bitmap.
+ */
+function probeImageSize(file: File): Promise<{ width: number; height: number }> {
+  const url = URL.createObjectURL(file);
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Couldn't read image dimensions"));
+    };
+    img.src = url;
+  });
+}
+
+/**
  * Unconditionally decodes the captured file and re-encodes it through canvas
  * as a baseline JPEG, resizing to a 1920px long edge only if it's larger than
  * that. This guarantees every uploaded file really is valid JPEG data —
@@ -26,18 +48,35 @@ function canvasToJpegBlob(canvas: HTMLCanvasElement, quality: number): Promise<B
  * file size. Throws if the file can't be decoded as an image at all.
  */
 export async function compressImageIfNeeded(file: File): Promise<File> {
+  let width: number;
+  let height: number;
+  try {
+    const size = await probeImageSize(file);
+    const scale = Math.min(1, MAX_DIMENSION / Math.max(size.width, size.height, 1));
+    width = Math.max(1, Math.round(size.width * scale));
+    height = Math.max(1, Math.round(size.height * scale));
+  } catch {
+    throw new Error(DECODE_FAILURE_MESSAGE);
+  }
+
   let bitmap: ImageBitmap;
   try {
-    bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+    // Decoding straight to the target size — instead of decoding at the
+    // camera's full resolution and shrinking afterward — keeps the decoded
+    // bitmap small. Phone cameras can shoot 12-108MP; fully decoding that
+    // into memory before resizing is what was triggering Chrome's "low
+    // memory" failure on phones without much RAM to spare.
+    bitmap = await createImageBitmap(file, {
+      imageOrientation: "from-image",
+      resizeWidth: width,
+      resizeHeight: height,
+      resizeQuality: "high",
+    });
   } catch {
     throw new Error(DECODE_FAILURE_MESSAGE);
   }
 
   try {
-    const scale = Math.min(1, MAX_DIMENSION / Math.max(bitmap.width, bitmap.height));
-    const width = Math.round(bitmap.width * scale);
-    const height = Math.round(bitmap.height * scale);
-
     const canvas = document.createElement("canvas");
     canvas.width = width;
     canvas.height = height;
