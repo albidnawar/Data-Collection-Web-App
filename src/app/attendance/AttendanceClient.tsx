@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Camera, CheckCircle2 } from "lucide-react";
 import { requestCameraPermission } from "@/lib/camera";
+import { getCameraMode, onCameraModeChanged } from "@/lib/cameraMode";
 import { compressImageIfNeeded } from "@/lib/imageCompression";
 import { getCurrentPositionDetailed, getLocationHelp } from "@/lib/geolocation";
 import { formatRawCoords } from "@/lib/geocoding";
@@ -48,6 +49,7 @@ export function AttendanceClient({
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cameraMode, setCameraModeState] = useState<"browser" | "device">("browser");
 
   const requestLocation = async () => {
     setLocatingGps(true);
@@ -60,11 +62,17 @@ export function AttendanceClient({
 
   useEffect(() => {
     if (mode === "done") return;
+    const cam = getCameraMode();
     // Same rationale as the capture screen: a client-only async browser API
     // result can only be known post-mount, so this state update is unavoidable.
     // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCameraModeState(cam);
     void requestLocation();
-    void requestCameraPermission("user");
+    if (cam === "browser") void requestCameraPermission("user");
+
+    // Picks up a change made via the header's camera-mode toggle without
+    // needing a full page reload — a plain mount-time read wouldn't notice it.
+    return onCameraModeChanged(() => setCameraModeState(getCameraMode()));
   }, [mode]);
 
   const handleTakeSelfie = () => fileInputRef.current?.click();
@@ -151,7 +159,7 @@ export function AttendanceClient({
           ref={fileInputRef}
           type="file"
           accept="image/*"
-          capture="user"
+          capture={cameraMode === "browser" ? "user" : undefined}
           onChange={handleFileChange}
           className="hidden"
         />

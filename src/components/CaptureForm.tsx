@@ -11,6 +11,7 @@ import { TagKindToggle } from "@/components/TagKindToggle";
 import { useTagCache } from "@/hooks/useTagCache";
 import { notifyQueueChanged } from "@/hooks/usePendingQueue";
 import { requestCameraPermission } from "@/lib/camera";
+import { getCameraMode, onCameraModeChanged } from "@/lib/cameraMode";
 import { getCurrentPositionDetailed, getLocationHelp } from "@/lib/geolocation";
 import { formatRawCoords } from "@/lib/geocoding";
 import { compressImageIfNeeded } from "@/lib/imageCompression";
@@ -64,6 +65,7 @@ export function CaptureForm({ requiresOutletCapture }: { requiresOutletCapture: 
   const [savingOutlet, setSavingOutlet] = useState(false);
   const [outletError, setOutletError] = useState<string | null>(null);
   const [savingPhoto, setSavingPhoto] = useState(false);
+  const [cameraMode, setCameraModeState] = useState<"browser" | "device">("browser");
 
   const requestLocation = async () => {
     setLocatingGps(true);
@@ -83,9 +85,18 @@ export function CaptureForm({ requiresOutletCapture }: { requiresOutletCapture: 
   // asynchronously — there's no way to derive this from props/state during
   // render, so updating state once it resolves is unavoidable.
   useEffect(() => {
+    const mode = getCameraMode();
     // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCameraModeState(mode);
     void requestLocation();
-    void requestCameraPermission("environment");
+    // Only pre-warms the permission prompt for the in-browser capture UI —
+    // "device" mode hands the camera off to the phone's own camera app, which
+    // asks for its own permission, so there's nothing for this page to warm.
+    if (mode === "browser") void requestCameraPermission("environment");
+
+    // Picks up a change made via the header's camera-mode toggle without
+    // needing a full page reload — a plain mount-time read wouldn't notice it.
+    return onCameraModeChanged(() => setCameraModeState(getCameraMode()));
   }, []);
 
   const handleTakePhoto = () => fileInputRef.current?.click();
@@ -314,11 +325,22 @@ export function CaptureForm({ requiresOutletCapture }: { requiresOutletCapture: 
   return (
     <div className="flex flex-1 flex-col gap-6 px-4 py-6">
       <DemoCaptureTour />
+      {/* The `capture` attribute drives Chrome's own built-in
+          capture-and-preview UI — fast (one tap, no app switch), but on some
+          Android phones (seen on a Redmi Note 9 Pro) that UI can't allocate
+          enough memory to show the just-taken photo and fails with "Unable
+          to complete previous operation due to low memory" before the file
+          ever reaches this page. Leaving it off instead opens the normal
+          Android picker (Camera/Gallery/Files); choosing "Camera" there uses
+          the phone's own stock Camera app, which doesn't hit that bug. Since
+          it only breaks on some devices, each rep picks which to use (the
+          "Camera" control in the header) rather than everyone losing the
+          faster flow. */}
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*"
-        capture="environment"
+        capture={cameraMode === "browser" ? "environment" : undefined}
         onChange={handleFileChange}
         className="hidden"
       />
@@ -326,7 +348,7 @@ export function CaptureForm({ requiresOutletCapture }: { requiresOutletCapture: 
         ref={outletFileInputRef}
         type="file"
         accept="image/*"
-        capture="environment"
+        capture={cameraMode === "browser" ? "environment" : undefined}
         onChange={handleOutletFileChange}
         className="hidden"
       />

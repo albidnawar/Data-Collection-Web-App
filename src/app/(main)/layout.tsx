@@ -5,6 +5,7 @@ import { getTodayAttendance } from "@/lib/attendance";
 import { QueueBadge } from "@/components/QueueBadge";
 import { TodayPhotoCountBadge } from "@/components/TodayPhotoCountBadge";
 import { SyncManager } from "@/components/SyncManager";
+import { CameraModeToggle } from "@/components/CameraModeToggle";
 import { logoutAction } from "./actions";
 
 export default async function MainLayout({ children }: { children: React.ReactNode }) {
@@ -28,6 +29,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
         <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1.5 sm:gap-x-3">
           <TodayPhotoCountBadge />
           <QueueBadge />
+          <CameraModeToggle />
           <Link href="/map" className="text-sm font-medium whitespace-nowrap text-gray-600 dark:text-gray-400">
             Map
           </Link>
