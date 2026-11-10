@@ -2,7 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { updatePhotoTagsAction } from "@/app/admin/photos/actions";
-import type { PhotoKind } from "@/lib/tagTypes";
+import { PHOTO_KINDS, type PhotoKind } from "@/lib/tagTypes";
+
+const KIND_LABELS: Record<PhotoKind, string> = {
+  posm: "POSM",
+  category: "Category Shelf Display",
+  sku: "SKU",
+  outlet: "Outlet",
+};
 
 interface Option {
   id: string;
@@ -12,6 +19,7 @@ interface Option {
 export function PhotoTagsCells({
   photoId,
   kind,
+  outletName,
   brandId,
   brandName,
   typeId,
@@ -21,47 +29,62 @@ export function PhotoTagsCells({
   isGoodExecution,
   brands,
   shopTypes,
-  typeOptions,
+  categories,
+  posmTypes,
+  skuTypes,
 }: {
   photoId: string;
   kind: PhotoKind;
-  brandId: string;
-  brandName: string;
+  outletName: string | null;
+  brandId: string | null;
+  brandName: string | null;
   typeId: string | null;
   typeName: string | null;
-  shopTypeId: string;
-  shopTypeName: string;
+  shopTypeId: string | null;
+  shopTypeName: string | null;
   isGoodExecution: boolean;
   brands: Option[];
   shopTypes: Option[];
-  typeOptions: Option[];
+  categories: Option[];
+  posmTypes: Option[];
+  skuTypes: Option[];
 }) {
   const [editing, setEditing] = useState(false);
-  const [draftBrandId, setDraftBrandId] = useState(brandId);
+  const [draftKind, setDraftKind] = useState<PhotoKind>(kind);
+  const [draftBrandId, setDraftBrandId] = useState(brandId ?? "");
   const [draftTypeId, setDraftTypeId] = useState(typeId ?? "");
-  const [draftShopTypeId, setDraftShopTypeId] = useState(shopTypeId);
+  const [draftShopTypeId, setDraftShopTypeId] = useState(shopTypeId ?? "");
   const [draftIsGood, setDraftIsGood] = useState(isGoodExecution);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const startEdit = () => {
-    setDraftBrandId(brandId);
+    setDraftKind(kind);
+    setDraftBrandId(brandId ?? "");
     setDraftTypeId(typeId ?? "");
-    setDraftShopTypeId(shopTypeId);
+    setDraftShopTypeId(shopTypeId ?? "");
     setDraftIsGood(isGoodExecution);
     setError(null);
     setEditing(true);
+  };
+
+  const changeDraftKind = (nextKind: PhotoKind) => {
+    setDraftKind(nextKind);
+    // The type picked (category/POSM/SKU) is only meaningful for the kind it
+    // was picked under, so it doesn't carry over to a different kind.
+    setDraftTypeId("");
   };
 
   const save = () => {
     setError(null);
     startTransition(async () => {
       const result = await updatePhotoTagsAction(photoId, {
-        brandId: draftBrandId,
-        shopTypeId: draftShopTypeId,
-        categoryId: kind === "category" ? draftTypeId || null : undefined,
-        posmTypeId: kind === "posm" ? draftTypeId || null : undefined,
-        skuTypeId: kind === "sku" ? draftTypeId || null : undefined,
+        kind: draftKind,
+        brandId: draftKind === "outlet" ? null : draftBrandId || null,
+        shopTypeId: draftKind === "outlet" ? null : draftShopTypeId || null,
+        categoryId: draftKind === "category" ? draftTypeId || null : null,
+        posmTypeId: draftKind === "posm" ? draftTypeId || null : null,
+        skuTypeId: draftKind === "sku" ? draftTypeId || null : null,
         isGoodExecution: draftIsGood,
       });
       if (result.ok) {
@@ -72,16 +95,24 @@ export function PhotoTagsCells({
     });
   };
 
+  const activeTypeOptions = draftKind === "posm" ? posmTypes : draftKind === "category" ? categories : skuTypes;
+
   if (!editing) {
     return (
       <>
-        <td className="px-3 py-2">{brandName}</td>
-        <td className="px-3 py-2">{typeName ?? "-"}</td>
-        <td className="px-3 py-2">{shopTypeName}</td>
+        <td className="px-3 py-2 whitespace-nowrap">{KIND_LABELS[kind]}</td>
+        <td className="px-3 py-2">{outletName ?? "-"}</td>
+        <td className="px-3 py-2">{brandName ?? "-"}</td>
+        <td className="px-3 py-2">{kind === "outlet" ? "-" : (typeName ?? "-")}</td>
+        <td className="px-3 py-2">{shopTypeName ?? "-"}</td>
         <td className="px-3 py-2">
-          <span className={isGoodExecution ? "text-green-600" : "text-red-600"}>
-            {isGoodExecution ? "Good" : "Bad"}
-          </span>
+          {kind === "outlet" ? (
+            "-"
+          ) : (
+            <span className={isGoodExecution ? "text-green-600" : "text-red-600"}>
+              {isGoodExecution ? "Good" : "Bad"}
+            </span>
+          )}
         </td>
         <td className="px-3 py-2">
           <button type="button" onClick={startEdit} className="text-xs font-medium text-blue-600">
@@ -96,47 +127,79 @@ export function PhotoTagsCells({
     <>
       <td className="px-3 py-2">
         <select
-          value={draftBrandId}
-          onChange={(e) => setDraftBrandId(e.target.value)}
+          value={draftKind}
+          onChange={(e) => changeDraftKind(e.target.value as PhotoKind)}
           className="rounded border border-gray-300 px-1 py-1 text-xs dark:border-gray-700 dark:bg-gray-800"
         >
-          {brands.map((b) => (
-            <option key={b.id} value={b.id}>{b.name}</option>
+          {PHOTO_KINDS.map((k) => (
+            <option key={k} value={k}>
+              {KIND_LABELS[k]}
+            </option>
           ))}
         </select>
       </td>
+      <td className="px-3 py-2">{outletName ?? "-"}</td>
       <td className="px-3 py-2">
-        <select
-          value={draftTypeId}
-          onChange={(e) => setDraftTypeId(e.target.value)}
-          className="rounded border border-gray-300 px-1 py-1 text-xs dark:border-gray-700 dark:bg-gray-800"
-        >
-          <option value="">-</option>
-          {typeOptions.map((t) => (
-            <option key={t.id} value={t.id}>{t.name}</option>
-          ))}
-        </select>
+        {draftKind === "outlet" ? (
+          "-"
+        ) : (
+          <select
+            value={draftBrandId}
+            onChange={(e) => setDraftBrandId(e.target.value)}
+            className="rounded border border-gray-300 px-1 py-1 text-xs dark:border-gray-700 dark:bg-gray-800"
+          >
+            <option value="">Select brand…</option>
+            {brands.map((b) => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+        )}
       </td>
       <td className="px-3 py-2">
-        <select
-          value={draftShopTypeId}
-          onChange={(e) => setDraftShopTypeId(e.target.value)}
-          className="rounded border border-gray-300 px-1 py-1 text-xs dark:border-gray-700 dark:bg-gray-800"
-        >
-          {shopTypes.map((s) => (
-            <option key={s.id} value={s.id}>{s.name}</option>
-          ))}
-        </select>
+        {draftKind === "outlet" ? (
+          "-"
+        ) : (
+          <select
+            value={draftTypeId}
+            onChange={(e) => setDraftTypeId(e.target.value)}
+            className="rounded border border-gray-300 px-1 py-1 text-xs dark:border-gray-700 dark:bg-gray-800"
+          >
+            <option value="">-</option>
+            {activeTypeOptions.map((t) => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
+        )}
       </td>
       <td className="px-3 py-2">
-        <select
-          value={draftIsGood ? "good" : "bad"}
-          onChange={(e) => setDraftIsGood(e.target.value === "good")}
-          className="rounded border border-gray-300 px-1 py-1 text-xs dark:border-gray-700 dark:bg-gray-800"
-        >
-          <option value="good">Good</option>
-          <option value="bad">Bad</option>
-        </select>
+        {draftKind === "outlet" ? (
+          "-"
+        ) : (
+          <select
+            value={draftShopTypeId}
+            onChange={(e) => setDraftShopTypeId(e.target.value)}
+            className="rounded border border-gray-300 px-1 py-1 text-xs dark:border-gray-700 dark:bg-gray-800"
+          >
+            <option value="">Select shop type…</option>
+            {shopTypes.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+        )}
+      </td>
+      <td className="px-3 py-2">
+        {draftKind === "outlet" ? (
+          "-"
+        ) : (
+          <select
+            value={draftIsGood ? "good" : "bad"}
+            onChange={(e) => setDraftIsGood(e.target.value === "good")}
+            className="rounded border border-gray-300 px-1 py-1 text-xs dark:border-gray-700 dark:bg-gray-800"
+          >
+            <option value="good">Good</option>
+            <option value="bad">Bad</option>
+          </select>
+        )}
       </td>
       <td className="px-3 py-2">
         <div className="flex flex-col gap-1">

@@ -244,7 +244,6 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
                 r.kind === "posm" ? r.posmTypeId : r.kind === "category" ? r.categoryId : r.skuTypeId;
               const typeName =
                 r.kind === "posm" ? r.posmType?.name : r.kind === "category" ? r.category?.name : r.skuType?.name;
-              const typeOptions = r.kind === "posm" ? posmTypes : r.kind === "category" ? categories : skuTypes;
 
               return (
               <tr key={r.id} className="border-b border-gray-100 dark:border-gray-800">
@@ -255,40 +254,23 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
                   <LocalDateTime iso={r.capturedAt.toISOString()} />
                 </td>
                 <td className="px-3 py-2">{r.rep.name}</td>
-                <td className="px-3 py-2">
-                  {r.kind === "posm"
-                    ? "POSM"
-                    : r.kind === "category"
-                      ? "Category Shelf Display"
-                      : r.kind === "outlet"
-                        ? "Outlet"
-                        : "SKU"}
-                </td>
-                <td className="px-3 py-2">{r.outletName ?? "-"}</td>
-                {r.kind === "outlet" || !r.brandId || !r.shopTypeId ? (
-                  <>
-                    <td className="px-3 py-2">{r.brand?.name ?? "-"}</td>
-                    <td className="px-3 py-2">-</td>
-                    <td className="px-3 py-2">{r.shopType?.name ?? "-"}</td>
-                    <td className="px-3 py-2">-</td>
-                    <td className="px-3 py-2">-</td>
-                  </>
-                ) : (
-                  <PhotoTagsCells
-                    photoId={r.id}
-                    kind={r.kind}
-                    brandId={r.brandId}
-                    brandName={r.brand!.name}
-                    typeId={typeId ?? null}
-                    typeName={typeName ?? null}
-                    shopTypeId={r.shopTypeId}
-                    shopTypeName={r.shopType!.name}
-                    isGoodExecution={r.isGoodExecution}
-                    brands={brands}
-                    shopTypes={shopTypes}
-                    typeOptions={typeOptions}
-                  />
-                )}
+                <PhotoTagsCells
+                  photoId={r.id}
+                  kind={r.kind}
+                  outletName={r.outletName}
+                  brandId={r.brandId}
+                  brandName={r.brand?.name ?? null}
+                  typeId={typeId ?? null}
+                  typeName={typeName ?? null}
+                  shopTypeId={r.shopTypeId}
+                  shopTypeName={r.shopType?.name ?? null}
+                  isGoodExecution={r.isGoodExecution}
+                  brands={brands}
+                  shopTypes={shopTypes}
+                  categories={categories}
+                  posmTypes={posmTypes}
+                  skuTypes={skuTypes}
+                />
                 <td className="px-3 py-2">
                   {r.shelfVacancy === true ? "Yes" : r.shelfVacancy === false ? "No" : "-"}
                 </td>
