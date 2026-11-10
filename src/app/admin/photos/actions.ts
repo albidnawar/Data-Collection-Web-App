@@ -50,6 +50,12 @@ export interface UpdatePhotoTagsInput {
   posmTypeId?: string | null;
   skuTypeId?: string | null;
   isGoodExecution: boolean;
+  // Left out entirely (not even `null`) by callers that don't edit these —
+  // the inline table editor, for instance — so they're kept as-is rather
+  // than wiped; the photo-detail panel always sends its current value.
+  shelfVacancy?: boolean | null;
+  surroundingRemarks?: string | null;
+  otherRemarks?: string | null;
 }
 
 export interface UpdatePhotoTagsResult {
@@ -82,6 +88,9 @@ export async function updatePhotoTagsAction(
   const brandId = kind === "outlet" ? null : input.brandId;
   const shopTypeId = kind === "outlet" ? null : input.shopTypeId;
   const isGoodExecution = kind === "outlet" ? record.isGoodExecution : input.isGoodExecution;
+  const shelfVacancy = input.shelfVacancy !== undefined ? input.shelfVacancy : record.shelfVacancy;
+  const surroundingRemarks = input.surroundingRemarks !== undefined ? input.surroundingRemarks : record.surroundingRemarks;
+  const otherRemarks = input.otherRemarks !== undefined ? input.otherRemarks : record.otherRemarks;
 
   let brand = null;
   let shopType = null;
@@ -116,6 +125,9 @@ export async function updatePhotoTagsAction(
       posmTypeId,
       skuTypeId,
       isGoodExecution,
+      shelfVacancy,
+      surroundingRemarks,
+      otherRemarks,
       filename,
       filenameSyncPending: true,
     },

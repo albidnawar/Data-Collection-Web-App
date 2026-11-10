@@ -214,7 +214,30 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
         </button>
       </form>
 
-      <PhotoLightboxProvider photos={records.map((r) => ({ id: r.id, filename: r.filename }))}>
+      <PhotoLightboxProvider
+        photos={records.map((r) => {
+          const typeId = r.kind === "posm" ? r.posmTypeId : r.kind === "category" ? r.categoryId : r.skuTypeId;
+          const typeName =
+            r.kind === "posm" ? r.posmType?.name : r.kind === "category" ? r.category?.name : r.skuType?.name;
+          return {
+            id: r.id,
+            filename: r.filename,
+            kind: r.kind,
+            outletName: r.outletName,
+            brandId: r.brandId,
+            brandName: r.brand?.name ?? null,
+            typeId: typeId ?? null,
+            typeName: typeName ?? null,
+            shopTypeId: r.shopTypeId,
+            shopTypeName: r.shopType?.name ?? null,
+            isGoodExecution: r.isGoodExecution,
+            shelfVacancy: r.shelfVacancy,
+            surroundingRemarks: r.surroundingRemarks,
+            otherRemarks: r.otherRemarks,
+          };
+        })}
+        editOptions={{ brands, shopTypes, categories, posmTypes, skuTypes }}
+      >
       <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
         <table className="w-full text-left text-sm">
           <thead className="border-b border-gray-200 text-xs uppercase text-gray-500 dark:border-gray-800">
