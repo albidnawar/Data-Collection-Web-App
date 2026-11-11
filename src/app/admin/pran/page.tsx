@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { buildPhotoWhere, getAvailablePhotoFilterOptions } from "@/lib/adminPhotoFilters";
+import { matchOutletVisits } from "@/lib/pranTracking";
 import { LocalDateTime } from "@/components/admin/LocalDateTime";
 import { DeletePhotoButton } from "@/components/admin/DeletePhotoButton";
 import { PhotoThumbnail } from "@/components/admin/PhotoThumbnail";
@@ -8,13 +9,6 @@ import { PhotoLightboxProvider } from "@/components/admin/PhotoLightbox";
 import type { Prisma } from "@/generated/prisma/client";
 
 const PAGE_SIZE = 50;
-
-type OutletVisit = {
-  id: string;
-  filename: string;
-  driveFileId: string | null;
-  capturedAt: Date;
-};
 
 export default async function AdminPranPage(props: PageProps<"/admin/pran">) {
   const sp = await props.searchParams;
@@ -64,76 +58,32 @@ export default async function AdminPranPage(props: PageProps<"/admin/pran">) {
   const pranRelationAvailable = (value: "pran" | "competitor") =>
     available.pranRelations.has(value) || value === filters.pranRelation;
 
-  // Match each product photo to the outlet's own outside photo from the same
-  // visit: same rep + outlet name, the latest outlet-kind shot taken at or
-  // before this one (outletName isn't a strict FK, but a rep only reuses a
-  // visit's name while it's still open, so this pins down the right visit).
-  const repIds = Array.from(new Set(records.map((r) => r.repId)));
-  const outletNames = Array.from(new Set(records.map((r) => r.outletName).filter((n): n is string => !!n)));
-
-  const outletRecords =
-    repIds.length > 0 && outletNames.length > 0
-      ? await prisma.photoRecord.findMany({
-          where: { kind: "outlet", repId: { in: repIds }, outletName: { in: outletNames } },
-          orderBy: { capturedAt: "asc" },
-          select: { id: true, repId: true, outletName: true, capturedAt: true, filename: true, driveFileId: true },
-        })
-      : [];
-
-  const outletsByKey = new Map<string, OutletVisit[]>();
-  for (const o of outletRecords) {
-    const key = `${o.repId}::${o.outletName}`;
-    const list = outletsByKey.get(key) ?? [];
-    list.push(o);
-    outletsByKey.set(key, list);
-  }
-
-  const findOutletVisit = (repId: string, outletName: string | null, capturedAt: Date): OutletVisit | null => {
-    if (!outletName) return null;
-    const candidates = outletsByKey.get(`${repId}::${outletName}`) ?? [];
-    let match: OutletVisit | null = null;
-    for (const c of candidates) {
-      if (c.capturedAt <= capturedAt) match = c;
-      else break;
-    }
-    return match;
-  };
-
-  // An outlet's own outside photo already appears in the "Outlet Photo"
-  // column of every product row it's matched to - so once at least one
-  // product photo exists for that visit, drop its standalone outlet row to
-  // avoid showing the same outlet shot twice. Checked against every product
-  // photo for these reps/outlets (not just this page) so the row disappears
-  // as soon as any product photo exists for that visit, wherever it lands.
-  const productRecordsForMatching =
-    repIds.length > 0 && outletNames.length > 0
-      ? await prisma.photoRecord.findMany({
-          where: { kind: { in: ["posm", "category", "sku"] }, repId: { in: repIds }, outletName: { in: outletNames } },
-          select: { repId: true, outletName: true, capturedAt: true },
-        })
-      : [];
-
-  const usedOutletIds = new Set<string>();
-  for (const p of productRecordsForMatching) {
-    const visit = findOutletVisit(p.repId, p.outletName, p.capturedAt);
-    if (visit) usedOutletIds.add(visit.id);
-  }
-
-  const visibleRecords = records.filter((r) => !(r.kind === "outlet" && usedOutletIds.has(r.id)));
+  const { visibleRecords, findOutletVisit } = await matchOutletVisits(records);
 
   const lightboxPhotos = new Map<string, { id: string; filename: string }>();
   for (const r of visibleRecords) lightboxPhotos.set(r.id, { id: r.id, filename: r.filename });
-  for (const o of outletRecords) lightboxPhotos.set(o.id, { id: o.id, filename: o.filename });
+  for (const r of records) {
+    const visit = r.kind === "outlet" ? null : findOutletVisit(r.repId, r.outletName, r.capturedAt);
+    if (visit) lightboxPhotos.set(visit.id, { id: visit.id, filename: visit.filename });
+  }
 
   const buildQuery = (extra: Record<string, string> = {}) =>
     new URLSearchParams(
       Object.entries({ ...filters, ...extra }).filter(([, v]) => v) as [string, string][],
     ).toString();
 
+  const exportQuery = buildQuery();
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Pran Tracking</h1>
+        <a
+          href={`/api/admin/pran?format=xlsx&${exportQuery}`}
+          className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white"
+        >
+          Export Excel
+        </a>
       </div>
 
       <form method="get" className="flex flex-wrap gap-3 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
