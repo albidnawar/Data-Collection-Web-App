@@ -91,6 +91,20 @@ export function PhotoLightboxProvider({
   const prev = useCallback(() => step(-1), [step]);
   const next = useCallback(() => step(1), [step]);
 
+  // Lets the edit panel know, before it saves, which photo it'll land on
+  // afterwards — saving triggers a revalidation that can drop the just-edited
+  // photo out of this `photos` array entirely (e.g. it no longer matches an
+  // active filter), so recomputing "next" from the post-save array could jump
+  // somewhere unexpected or close the lightbox. Peeking now and jumping there
+  // directly (via goTo) sidesteps that.
+  const peekNextId = useCallback(() => {
+    if (currentId === null || photos.length === 0) return null;
+    const i = photos.findIndex((p) => p.id === currentId);
+    const base = i === -1 ? 0 : i;
+    return photos[(base + 1) % photos.length].id;
+  }, [photos, currentId]);
+  const goTo = useCallback((id: string) => setCurrentId(id), []);
+
   useEffect(() => {
     if (currentId === null) return;
     const onKey = (e: KeyboardEvent) => {
@@ -123,6 +137,8 @@ export function PhotoLightboxProvider({
               onPrev={prev}
               onNext={next}
               onClose={close}
+              peekNextId={peekNextId}
+              goTo={goTo}
             />
           ) : (
             <div className="flex flex-1 flex-col items-center justify-center p-4">
@@ -199,12 +215,16 @@ function PhotoEditPanel({
   onPrev,
   onNext,
   onClose,
+  peekNextId,
+  goTo,
 }: {
   photo: EditablePhotoRef;
   options: PhotoEditOptions;
   onPrev: () => void;
   onNext: () => void;
   onClose: () => void;
+  peekNextId: () => string | null;
+  goTo: (id: string) => void;
 }) {
   const [draftKind, setDraftKind] = useState<PhotoKind>(photo.kind);
   const [draftBrandId, setDraftBrandId] = useState(photo.brandId ?? "");
@@ -245,6 +265,10 @@ function PhotoEditPanel({
     setError(null);
     setSaved(false);
     setPending(true);
+    // Computed up front — saving revalidates the page's data, which can drop
+    // this photo out of the tray (e.g. it no longer matches an active
+    // filter), so this can't be recomputed from the array afterward.
+    const nextId = peekNextId();
     const result = await updatePhotoTagsAction(photo.id, {
       kind: draftKind,
       brandId: draftKind === "outlet" ? null : draftBrandId || null,
@@ -260,6 +284,7 @@ function PhotoEditPanel({
     setPending(false);
     if (result.ok) {
       setSaved(true);
+      if (nextId && nextId !== photo.id) goTo(nextId);
     } else {
       setError(result.message);
     }
