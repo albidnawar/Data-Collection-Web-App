@@ -94,14 +94,15 @@ export function PhotoLightboxProvider({
   // Lets the edit panel know, before it saves, which photo it'll land on
   // afterwards — saving triggers a revalidation that can drop the just-edited
   // photo out of this `photos` array entirely (e.g. it no longer matches an
-  // active filter), so recomputing "next" from the post-save array could jump
+  // active filter), so recomputing this from the post-save array could jump
   // somewhere unexpected or close the lightbox. Peeking now and jumping there
-  // directly (via goTo) sidesteps that.
+  // directly (via goTo) sidesteps that. Steps backward (same direction as
+  // "‹ Previous") per how admins actually flip through the tray after saving.
   const peekNextId = useCallback(() => {
     if (currentId === null || photos.length === 0) return null;
     const i = photos.findIndex((p) => p.id === currentId);
     const base = i === -1 ? 0 : i;
-    return photos[(base + 1) % photos.length].id;
+    return photos[(base - 1 + photos.length) % photos.length].id;
   }, [photos, currentId]);
   const goTo = useCallback((id: string) => setCurrentId(id), []);
 
