@@ -5,7 +5,9 @@ import { matchOutletVisits } from "@/lib/pranTracking";
 import { LocalDateTime } from "@/components/admin/LocalDateTime";
 import { DeletePhotoButton } from "@/components/admin/DeletePhotoButton";
 import { PhotoThumbnail } from "@/components/admin/PhotoThumbnail";
+import { PhotoTagsCells } from "@/components/admin/PhotoTagsCells";
 import { PhotoLightboxProvider } from "@/components/admin/PhotoLightbox";
+import { KIND_OPTIONS, STATUS_OPTIONS, EXECUTION_OPTIONS, SHELF_VACANCY_OPTIONS } from "@/lib/photoFilterOptions";
 import type { Prisma } from "@/generated/prisma/client";
 
 const PAGE_SIZE = 50;
@@ -19,6 +21,12 @@ export default async function AdminPranPage(props: PageProps<"/admin/pran">) {
     dateTo: get("dateTo"),
     repId: get("repId"),
     brandId: get("brandId"),
+    shopTypeId: get("shopTypeId"),
+    productCategoryId: get("productCategoryId"),
+    kind: get("kind"),
+    status: get("status"),
+    executionQuality: get("executionQuality"),
+    shelfVacancy: get("shelfVacancy"),
     pranRelation: get("pranRelation"),
     outletName: get("outletName"),
   };
@@ -31,18 +39,24 @@ export default async function AdminPranPage(props: PageProps<"/admin/pran">) {
   const where: Prisma.PhotoRecordWhereInput = buildPhotoWhere(filters);
   where.rep = { role: "pran" };
 
-  const [reps, brands, total, records] = await Promise.all([
-    prisma.rep.findMany({ where: { role: "pran" }, orderBy: { name: "asc" } }),
-    prisma.brand.findMany({ orderBy: { name: "asc" } }),
-    prisma.photoRecord.count({ where }),
-    prisma.photoRecord.findMany({
-      where,
-      orderBy: { capturedAt: "desc" },
-      skip: (page - 1) * PAGE_SIZE,
-      take: PAGE_SIZE,
-      include: { rep: true, brand: true, category: true, posmType: true, skuType: true, shopType: true },
-    }),
-  ]);
+  const [reps, brands, shopTypes, categories, posmTypes, skuTypes, productCategories, total, records] =
+    await Promise.all([
+      prisma.rep.findMany({ where: { role: "pran" }, orderBy: { name: "asc" } }),
+      prisma.brand.findMany({ orderBy: { name: "asc" } }),
+      prisma.shopType.findMany({ orderBy: { name: "asc" } }),
+      prisma.category.findMany({ orderBy: { name: "asc" } }),
+      prisma.posmType.findMany({ orderBy: { name: "asc" } }),
+      prisma.skuType.findMany({ orderBy: { name: "asc" } }),
+      prisma.productCategory.findMany({ orderBy: { name: "asc" } }),
+      prisma.photoRecord.count({ where }),
+      prisma.photoRecord.findMany({
+        where,
+        orderBy: { capturedAt: "desc" },
+        skip: (page - 1) * PAGE_SIZE,
+        take: PAGE_SIZE,
+        include: { rep: true, brand: true, category: true, posmType: true, skuType: true, shopType: true, productCategory: true },
+      }),
+    ]);
   // Run after the batch above finishes rather than alongside it — it issues
   // its own sequence of queries, and the local dev Postgres connection pool
   // can't take all of these running at once.
@@ -55,16 +69,54 @@ export default async function AdminPranPage(props: PageProps<"/admin/pran">) {
   // but the currently selected value is always kept visible.
   const visibleReps = reps.filter((r) => available.repIds.has(r.id) || r.id === filters.repId);
   const visibleBrands = brands.filter((b) => available.brandIds.has(b.id) || b.id === filters.brandId);
+  const visibleShopTypes = shopTypes.filter((s) => available.shopTypeIds.has(s.id) || s.id === filters.shopTypeId);
+  const visibleProductCategories = productCategories.filter(
+    (p) => available.productCategoryIds.has(p.id) || p.id === filters.productCategoryId,
+  );
+  const visibleKinds = KIND_OPTIONS.filter((o) => available.kinds.has(o.value) || o.value === filters.kind);
+  const visibleStatuses = STATUS_OPTIONS.filter((o) => available.statuses.has(o.value) || o.value === filters.status);
+  const visibleExecutions = EXECUTION_OPTIONS.filter(
+    (o) => available.goodExecutions.has(o.value === "good") || o.value === filters.executionQuality,
+  );
+  const visibleShelfVacancies = SHELF_VACANCY_OPTIONS.filter(
+    (o) => available.shelfVacancies.has(o.value === "yes") || o.value === filters.shelfVacancy,
+  );
   const pranRelationAvailable = (value: "pran" | "competitor") =>
     available.pranRelations.has(value) || value === filters.pranRelation;
 
   const { visibleRecords, findOutletVisit } = await matchOutletVisits(records);
 
-  const lightboxPhotos = new Map<string, { id: string; filename: string }>();
-  for (const r of visibleRecords) lightboxPhotos.set(r.id, { id: r.id, filename: r.filename });
+  type LightboxPhoto = Parameters<typeof PhotoLightboxProvider>[0]["photos"][number];
+  const lightboxPhotos = new Map<string, LightboxPhoto>();
+  for (const r of visibleRecords) {
+    const typeId = r.kind === "posm" ? r.posmTypeId : r.kind === "category" ? r.categoryId : r.skuTypeId;
+    const typeName =
+      r.kind === "posm" ? r.posmType?.name : r.kind === "category" ? r.category?.name : r.skuType?.name;
+    lightboxPhotos.set(r.id, {
+      id: r.id,
+      filename: r.filename,
+      kind: r.kind,
+      outletName: r.outletName,
+      brandId: r.brandId,
+      brandName: r.brand?.name ?? null,
+      typeId: typeId ?? null,
+      typeName: typeName ?? null,
+      shopTypeId: r.shopTypeId,
+      shopTypeName: r.shopType?.name ?? null,
+      isGoodExecution: r.isGoodExecution,
+      productCategoryId: r.productCategoryId,
+      productCategoryName: r.productCategory?.name ?? null,
+      shelfVacancy: r.shelfVacancy,
+      surroundingRemarks: r.surroundingRemarks,
+      otherRemarks: r.otherRemarks,
+      repIsPranRole: true,
+    });
+  }
   for (const r of records) {
     const visit = r.kind === "outlet" ? null : findOutletVisit(r.repId, r.outletName, r.capturedAt);
-    if (visit) lightboxPhotos.set(visit.id, { id: visit.id, filename: visit.filename });
+    if (visit && !lightboxPhotos.has(visit.id)) {
+      lightboxPhotos.set(visit.id, { id: visit.id, filename: visit.filename });
+    }
   }
 
   const buildQuery = (extra: Record<string, string> = {}) =>
@@ -114,6 +166,60 @@ export default async function AdminPranPage(props: PageProps<"/admin/pran">) {
           </select>
         </label>
         <label className="flex flex-col gap-1 text-xs text-gray-500">
+          Shop type
+          <select name="shopTypeId" defaultValue={filters.shopTypeId ?? ""} className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800">
+            <option value="">All</option>
+            {visibleShopTypes.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-xs text-gray-500">
+          Product Category
+          <select name="productCategoryId" defaultValue={filters.productCategoryId ?? ""} className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800">
+            <option value="">All</option>
+            {visibleProductCategories.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-xs text-gray-500">
+          Kind
+          <select name="kind" defaultValue={filters.kind ?? ""} className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800">
+            <option value="">All</option>
+            {visibleKinds.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-xs text-gray-500">
+          Status
+          <select name="status" defaultValue={filters.status ?? ""} className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800">
+            <option value="">All</option>
+            {visibleStatuses.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-xs text-gray-500">
+          Execution
+          <select name="executionQuality" defaultValue={filters.executionQuality ?? ""} className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800">
+            <option value="">All</option>
+            {visibleExecutions.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-xs text-gray-500">
+          Shelf vacancy
+          <select name="shelfVacancy" defaultValue={filters.shelfVacancy ?? ""} className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800">
+            <option value="">All</option>
+            {visibleShelfVacancies.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-xs text-gray-500">
           Pran / Competitor
           <select name="pranRelation" defaultValue={filters.pranRelation ?? ""} className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800">
             <option value="">All</option>
@@ -130,7 +236,10 @@ export default async function AdminPranPage(props: PageProps<"/admin/pran">) {
         </button>
       </form>
 
-      <PhotoLightboxProvider photos={Array.from(lightboxPhotos.values())}>
+      <PhotoLightboxProvider
+        photos={Array.from(lightboxPhotos.values())}
+        editOptions={{ brands, shopTypes, categories, posmTypes, skuTypes, productCategories }}
+      >
         <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-gray-200 text-xs uppercase text-gray-500 dark:border-gray-800">
@@ -138,12 +247,14 @@ export default async function AdminPranPage(props: PageProps<"/admin/pran">) {
                 <th className="px-3 py-2">Photo</th>
                 <th className="px-3 py-2">Pran / Competitor</th>
                 <th className="px-3 py-2">Outlet Photo</th>
-                <th className="px-3 py-2">Outlet Name</th>
-                <th className="px-3 py-2">Brand</th>
                 <th className="px-3 py-2">Kind</th>
+                <th className="px-3 py-2">Outlet</th>
+                <th className="px-3 py-2">Brand</th>
                 <th className="px-3 py-2">Type</th>
-                <th className="px-3 py-2">Shop Type</th>
+                <th className="px-3 py-2">Shop type</th>
                 <th className="px-3 py-2">Execution</th>
+                <th className="px-3 py-2">Product Category</th>
+                <th className="px-3 py-2">Edit</th>
                 <th className="px-3 py-2">Rep</th>
                 <th className="px-3 py-2">Captured</th>
                 <th className="px-3 py-2">Location</th>
@@ -156,8 +267,9 @@ export default async function AdminPranPage(props: PageProps<"/admin/pran">) {
             <tbody>
               {visibleRecords.map((r) => {
                 const isOutletKind = r.kind === "outlet";
+                const typeId = r.kind === "posm" ? r.posmTypeId : r.kind === "category" ? r.categoryId : r.skuTypeId;
                 const typeName =
-                  r.kind === "posm" ? r.posmType?.name : r.kind === "category" ? r.category?.name : r.kind === "sku" ? r.skuType?.name : undefined;
+                  r.kind === "posm" ? r.posmType?.name : r.kind === "category" ? r.category?.name : r.skuType?.name;
                 const outletVisit = isOutletKind ? null : findOutletVisit(r.repId, r.outletName, r.capturedAt);
                 const remarks = [r.surroundingRemarks, r.otherRemarks].filter(Boolean).join(" / ");
 
@@ -184,28 +296,26 @@ export default async function AdminPranPage(props: PageProps<"/admin/pran">) {
                         <div className="h-10 w-10 rounded bg-gray-100 dark:bg-gray-800" />
                       )}
                     </td>
-                    <td className="px-3 py-2">{r.outletName ?? "-"}</td>
-                    <td className="px-3 py-2">{r.brand?.name ?? "-"}</td>
-                    <td className="px-3 py-2">
-                      {r.kind === "posm"
-                        ? "POSM"
-                        : r.kind === "category"
-                          ? "Category Shelf Display"
-                          : r.kind === "sku"
-                            ? "SKU"
-                            : "Outlet"}
-                    </td>
-                    <td className="px-3 py-2">{typeName ?? "-"}</td>
-                    <td className="px-3 py-2">{r.shopType?.name ?? "-"}</td>
-                    <td className="px-3 py-2">
-                      {isOutletKind ? (
-                        "-"
-                      ) : (
-                        <span className={r.isGoodExecution ? "text-green-600" : "text-red-600"}>
-                          {r.isGoodExecution ? "Good" : "Bad"}
-                        </span>
-                      )}
-                    </td>
+                    <PhotoTagsCells
+                      photoId={r.id}
+                      kind={r.kind}
+                      outletName={r.outletName}
+                      brandId={r.brandId}
+                      brandName={r.brand?.name ?? null}
+                      typeId={typeId ?? null}
+                      typeName={typeName ?? null}
+                      shopTypeId={r.shopTypeId}
+                      shopTypeName={r.shopType?.name ?? null}
+                      isGoodExecution={r.isGoodExecution}
+                      productCategoryId={r.productCategoryId}
+                      productCategoryName={r.productCategory?.name ?? null}
+                      brands={brands}
+                      shopTypes={shopTypes}
+                      categories={categories}
+                      posmTypes={posmTypes}
+                      skuTypes={skuTypes}
+                      productCategories={productCategories}
+                    />
                     <td className="px-3 py-2">{r.rep.name}</td>
                     <td className="px-3 py-2 whitespace-nowrap">
                       <LocalDateTime iso={r.capturedAt.toISOString()} />
@@ -244,7 +354,7 @@ export default async function AdminPranPage(props: PageProps<"/admin/pran">) {
               })}
               {visibleRecords.length === 0 && (
                 <tr>
-                  <td colSpan={16} className="px-3 py-6 text-center text-gray-500">
+                  <td colSpan={18} className="px-3 py-6 text-center text-gray-500">
                     No Pran photos match these filters.
                   </td>
                 </tr>

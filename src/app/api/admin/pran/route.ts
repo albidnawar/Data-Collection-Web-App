@@ -27,7 +27,7 @@ export async function GET(request: Request) {
   const records = await prisma.photoRecord.findMany({
     where,
     orderBy: { capturedAt: "desc" },
-    include: { rep: true, brand: true, category: true, posmType: true, skuType: true, shopType: true },
+    include: { rep: true, brand: true, category: true, posmType: true, skuType: true, shopType: true, productCategory: true },
   });
 
   const { visibleRecords, findOutletVisit } = await matchOutletVisits(records);
@@ -43,6 +43,7 @@ export async function GET(request: Request) {
     { header: "Type", key: "type", width: 20 },
     { header: "Shop Type", key: "shopType", width: 16 },
     { header: "Execution", key: "execution", width: 12 },
+    { header: "Product Category", key: "productCategory", width: 18 },
     { header: "Rep", key: "rep", width: 16 },
     { header: "Captured At", key: "capturedAt", width: 20 },
     { header: "GPS Lat", key: "gpsLat", width: 12 },
@@ -78,6 +79,7 @@ export async function GET(request: Request) {
       type: typeName ?? "",
       shopType: r.shopType?.name ?? "",
       execution: isOutletKind ? "" : r.isGoodExecution ? "Good" : "Bad",
+      productCategory: r.productCategory?.name ?? "",
       rep: r.rep.name,
       capturedAt: r.capturedAt.toISOString(),
       gpsLat: r.gpsLat ?? "",

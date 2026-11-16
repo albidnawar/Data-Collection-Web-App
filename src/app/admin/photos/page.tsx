@@ -7,29 +7,9 @@ import { FixCorruptedPhotosButton } from "@/components/admin/FixCorruptedPhotosB
 import { PhotoThumbnail } from "@/components/admin/PhotoThumbnail";
 import { PhotoTagsCells } from "@/components/admin/PhotoTagsCells";
 import { PhotoLightboxProvider } from "@/components/admin/PhotoLightbox";
+import { KIND_OPTIONS, STATUS_OPTIONS, EXECUTION_OPTIONS, SHELF_VACANCY_OPTIONS } from "@/lib/photoFilterOptions";
 
 const PAGE_SIZE = 50;
-
-const KIND_OPTIONS = [
-  { value: "posm", label: "POSM" },
-  { value: "category", label: "Category Shelf Display" },
-  { value: "sku", label: "SKU" },
-  { value: "outlet", label: "Outlet" },
-];
-const STATUS_OPTIONS = [
-  { value: "uploaded", label: "Uploaded" },
-  { value: "pending", label: "Pending" },
-  { value: "uploading", label: "Uploading" },
-  { value: "failed", label: "Failed" },
-];
-const EXECUTION_OPTIONS = [
-  { value: "good", label: "Good" },
-  { value: "bad", label: "Bad" },
-];
-const SHELF_VACANCY_OPTIONS = [
-  { value: "yes", label: "Yes" },
-  { value: "no", label: "No" },
-];
 
 export default async function AdminPhotosPage(props: PageProps<"/admin/photos">) {
   const sp = await props.searchParams;

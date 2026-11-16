@@ -2,7 +2,15 @@ import { prisma } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
 
 export type PranTrackingRecord = Prisma.PhotoRecordGetPayload<{
-  include: { rep: true; brand: true; category: true; posmType: true; skuType: true; shopType: true };
+  include: {
+    rep: true;
+    brand: true;
+    category: true;
+    posmType: true;
+    skuType: true;
+    shopType: true;
+    productCategory: true;
+  };
 }>;
 
 export interface OutletVisit {
