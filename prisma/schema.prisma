@@ -54,14 +54,15 @@ model Rep {
   role         RepRole  @default(rep)
   createdAt    DateTime @default(now())
 
-  createdBrands      Brand[]       @relation("BrandCreatedBy")
-  createdCategories  Category[]    @relation("CategoryCreatedBy")
-  createdPosmTypes   PosmType[]    @relation("PosmTypeCreatedBy")
-  createdSkuTypes    SkuType[]     @relation("SkuTypeCreatedBy")
-  createdShopTypes   ShopType[]    @relation("ShopTypeCreatedBy")
-  createdOutlets     Outlet[]      @relation("OutletCreatedBy")
-  photoRecords       PhotoRecord[]
-  attendances        Attendance[]
+  createdBrands           Brand[]           @relation("BrandCreatedBy")
+  createdCategories       Category[]        @relation("CategoryCreatedBy")
+  createdPosmTypes        PosmType[]        @relation("PosmTypeCreatedBy")
+  createdSkuTypes         SkuType[]         @relation("SkuTypeCreatedBy")
+  createdShopTypes        ShopType[]        @relation("ShopTypeCreatedBy")
+  createdProductCategories ProductCategory[] @relation("ProductCategoryCreatedBy")
+  createdOutlets          Outlet[]          @relation("OutletCreatedBy")
+  photoRecords            PhotoRecord[]
+  attendances             Attendance[]
 }
 
 model Brand {
@@ -142,6 +143,22 @@ model ShopType {
   photoRecords PhotoRecord[]
 }
 
+// A photo's product category (e.g. "Beverage", "Dairy", "Tea") — independent
+// of PhotoKind/Brand/Category/PosmType/SkuType, and not required: every photo
+// already in the system starts with this unset, and it's filled in later from
+// either the admin lightbox/quick editor or the rep capture screen, same as
+// any other tag type.
+model ProductCategory {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  createdById String?
+  createdBy   Rep?     @relation("ProductCategoryCreatedBy", fields: [createdById], references: [id])
+
+  photoRecords PhotoRecord[]
+}
+
 model PhotoRecord {
   id            String       @id @default(uuid())
   clientQueueId String       @unique
@@ -173,6 +190,11 @@ model PhotoRecord {
   // outlet's own outside photo, only for the product photos taken after it.
   shopTypeId String?
   shopType   ShopType? @relation(fields: [shopTypeId], references: [id])
+
+  // Optional on every photo regardless of kind — never required, and left
+  // unset on every photo that existed before this field was added.
+  productCategoryId String?
+  productCategory   ProductCategory? @relation(fields: [productCategoryId], references: [id])
 
   shopName String?
 
@@ -230,6 +252,7 @@ model PhotoRecord {
   @@index([byteFormatIssue])
   @@index([pranRelation])
   @@index([outletName])
+  @@index([productCategoryId])
 }
 
 // One row per rep per day. dateKey is a "YYYY-MM-DD" string computed in the

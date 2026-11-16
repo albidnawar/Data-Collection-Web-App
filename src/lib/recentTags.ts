@@ -6,14 +6,14 @@ type RecentMap = Record<string, number>;
 
 function loadAll(): Record<TagType, RecentMap> {
   if (typeof window === "undefined") {
-    return { brand: {}, category: {}, posmType: {}, skuType: {}, shopType: {} };
+    return { brand: {}, category: {}, posmType: {}, skuType: {}, shopType: {}, productCategory: {} };
   }
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { brand: {}, category: {}, posmType: {}, skuType: {}, shopType: {} };
+    if (!raw) return { brand: {}, category: {}, posmType: {}, skuType: {}, shopType: {}, productCategory: {} };
     return JSON.parse(raw);
   } catch {
-    return { brand: {}, category: {}, posmType: {}, skuType: {}, shopType: {} };
+    return { brand: {}, category: {}, posmType: {}, skuType: {}, shopType: {}, productCategory: {} };
   }
 }
 

@@ -1,4 +1,4 @@
-export const TAG_TYPES = ["brand", "category", "posmType", "skuType", "shopType"] as const;
+export const TAG_TYPES = ["brand", "category", "posmType", "skuType", "shopType", "productCategory"] as const;
 
 export type TagType = (typeof TAG_TYPES)[number];
 

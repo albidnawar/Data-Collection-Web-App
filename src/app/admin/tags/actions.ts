@@ -27,6 +27,8 @@ async function updateTag(type: TagType, id: string, data: { active?: boolean; na
       return prisma.skuType.update({ where: { id }, data });
     case "shopType":
       return prisma.shopType.update({ where: { id }, data });
+    case "productCategory":
+      return prisma.productCategory.update({ where: { id }, data });
   }
 }
 
@@ -43,6 +45,8 @@ async function createTag(type: TagType, name: string, createdById: string) {
       return prisma.skuType.create({ data: create });
     case "shopType":
       return prisma.shopType.create({ data: create });
+    case "productCategory":
+      return prisma.productCategory.create({ data: create });
   }
 }
 

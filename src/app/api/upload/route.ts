@@ -30,6 +30,7 @@ interface ClaimParams {
   posmTypeId: string | null;
   skuTypeId: string | null;
   shopTypeId: string | null;
+  productCategoryId: string | null;
   outletName: string | null;
   pranRelation: "pran" | "competitor" | null;
   gpsLat: number | null;
@@ -61,6 +62,7 @@ async function claimPhotoRecordForUpload(
     posmTypeId: params.posmTypeId,
     skuTypeId: params.skuTypeId,
     shopTypeId: params.shopTypeId,
+    productCategoryId: params.productCategoryId,
     outletName: params.outletName,
     pranRelation: params.pranRelation,
     gpsLat: params.gpsLat,
@@ -128,6 +130,7 @@ export async function POST(request: Request) {
   const isGoodExecutionRaw = requireString(formData, "isGoodExecution");
   const posmTypeName = requireString(formData, "posmTypeName");
   const skuTypeName = requireString(formData, "skuTypeName");
+  const productCategoryName = requireString(formData, "productCategoryName");
   const outletName = requireString(formData, "outletName");
   const pranRelationRaw = requireString(formData, "pranRelation");
   const gpsLatRaw = formData.get("gpsLat");
@@ -161,12 +164,13 @@ export async function POST(request: Request) {
   const pranRelation = isPranRelation(pranRelationRaw) ? pranRelationRaw : null;
   const capturedAt = new Date(capturedAtRaw);
 
-  const [brand, category, shopType, posmType, skuType] = await Promise.all([
+  const [brand, category, shopType, posmType, skuType, productCategory] = await Promise.all([
     brandName ? resolveOrCreateTag("brand", brandName, session.user.id) : Promise.resolve(null),
     kind === "category" && categoryName ? resolveOrCreateTag("category", categoryName, session.user.id) : Promise.resolve(null),
     shopTypeName ? resolveOrCreateTag("shopType", shopTypeName, session.user.id) : Promise.resolve(null),
     kind === "posm" && posmTypeName ? resolveOrCreateTag("posmType", posmTypeName, session.user.id) : Promise.resolve(null),
     kind === "sku" && skuTypeName ? resolveOrCreateTag("skuType", skuTypeName, session.user.id) : Promise.resolve(null),
+    productCategoryName ? resolveOrCreateTag("productCategory", productCategoryName, session.user.id) : Promise.resolve(null),
   ]);
 
   const typeName =
@@ -202,6 +206,7 @@ export async function POST(request: Request) {
     posmTypeId: posmType?.id ?? null,
     skuTypeId: skuType?.id ?? null,
     shopTypeId: shopType?.id ?? null,
+    productCategoryId: productCategory?.id ?? null,
     outletName,
     pranRelation,
     gpsLat,

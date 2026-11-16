@@ -27,11 +27,14 @@ export function PhotoTagsCells({
   shopTypeId,
   shopTypeName,
   isGoodExecution,
+  productCategoryId,
+  productCategoryName,
   brands,
   shopTypes,
   categories,
   posmTypes,
   skuTypes,
+  productCategories,
 }: {
   photoId: string;
   kind: PhotoKind;
@@ -43,11 +46,14 @@ export function PhotoTagsCells({
   shopTypeId: string | null;
   shopTypeName: string | null;
   isGoodExecution: boolean;
+  productCategoryId: string | null;
+  productCategoryName: string | null;
   brands: Option[];
   shopTypes: Option[];
   categories: Option[];
   posmTypes: Option[];
   skuTypes: Option[];
+  productCategories: Option[];
 }) {
   const [editing, setEditing] = useState(false);
   const [draftKind, setDraftKind] = useState<PhotoKind>(kind);
@@ -55,6 +61,7 @@ export function PhotoTagsCells({
   const [draftTypeId, setDraftTypeId] = useState(typeId ?? "");
   const [draftShopTypeId, setDraftShopTypeId] = useState(shopTypeId ?? "");
   const [draftIsGood, setDraftIsGood] = useState(isGoodExecution);
+  const [draftProductCategoryId, setDraftProductCategoryId] = useState(productCategoryId ?? "");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -64,6 +71,7 @@ export function PhotoTagsCells({
     setDraftTypeId(typeId ?? "");
     setDraftShopTypeId(shopTypeId ?? "");
     setDraftIsGood(isGoodExecution);
+    setDraftProductCategoryId(productCategoryId ?? "");
     setError(null);
     setEditing(true);
   };
@@ -86,6 +94,7 @@ export function PhotoTagsCells({
         posmTypeId: draftKind === "posm" ? draftTypeId || null : null,
         skuTypeId: draftKind === "sku" ? draftTypeId || null : null,
         isGoodExecution: draftIsGood,
+        productCategoryId: draftProductCategoryId || null,
       });
       if (result.ok) {
         setEditing(false);
@@ -114,6 +123,7 @@ export function PhotoTagsCells({
             </span>
           )}
         </td>
+        <td className="px-3 py-2">{productCategoryName ?? "-"}</td>
         <td className="px-3 py-2">
           <button type="button" onClick={startEdit} className="text-xs font-medium text-blue-600">
             Edit
@@ -200,6 +210,18 @@ export function PhotoTagsCells({
             <option value="bad">Bad</option>
           </select>
         )}
+      </td>
+      <td className="px-3 py-2">
+        <select
+          value={draftProductCategoryId}
+          onChange={(e) => setDraftProductCategoryId(e.target.value)}
+          className="rounded border border-gray-300 px-1 py-1 text-xs dark:border-gray-700 dark:bg-gray-800"
+        >
+          <option value="">-</option>
+          {productCategories.map((p) => (
+            <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </select>
       </td>
       <td className="px-3 py-2">
         <div className="flex flex-col gap-1">

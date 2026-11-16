@@ -6,7 +6,7 @@ import type { TagType } from "@/lib/tagTypes";
 
 const PERIODIC_REFRESH_MS = 15000;
 
-type CacheKey = "brands" | "categories" | "posmTypes" | "skuTypes" | "shopTypes";
+type CacheKey = "brands" | "categories" | "posmTypes" | "skuTypes" | "shopTypes" | "productCategories";
 
 const TYPE_TO_CACHE_KEY: Record<TagType, CacheKey> = {
   brand: "brands",
@@ -14,6 +14,7 @@ const TYPE_TO_CACHE_KEY: Record<TagType, CacheKey> = {
   posmType: "posmTypes",
   skuType: "skuTypes",
   shopType: "shopTypes",
+  productCategory: "productCategories",
 };
 
 interface PendingTag {

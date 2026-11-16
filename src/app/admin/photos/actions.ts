@@ -51,6 +51,10 @@ export interface UpdatePhotoTagsInput {
   categoryId?: string | null;
   posmTypeId?: string | null;
   skuTypeId?: string | null;
+  // Left out entirely (not even `null`) by callers that don't edit it, so it
+  // stays as-is rather than getting wiped — same convention as the remarks
+  // fields below. Valid for every kind, including "outlet".
+  productCategoryId?: string | null;
   isGoodExecution: boolean;
   // Left out entirely (not even `null`) by callers that don't edit these —
   // the inline table editor, for instance — so they're kept as-is rather
@@ -90,6 +94,7 @@ export async function updatePhotoTagsAction(
   const brandId = kind === "outlet" ? null : input.brandId;
   const shopTypeId = kind === "outlet" ? null : input.shopTypeId;
   const isGoodExecution = kind === "outlet" ? record.isGoodExecution : input.isGoodExecution;
+  const productCategoryId = input.productCategoryId !== undefined ? input.productCategoryId : record.productCategoryId;
   const shelfVacancy = input.shelfVacancy !== undefined ? input.shelfVacancy : record.shelfVacancy;
   const surroundingRemarks = input.surroundingRemarks !== undefined ? input.surroundingRemarks : record.surroundingRemarks;
   const otherRemarks = input.otherRemarks !== undefined ? input.otherRemarks : record.otherRemarks;
@@ -126,6 +131,7 @@ export async function updatePhotoTagsAction(
       categoryId,
       posmTypeId,
       skuTypeId,
+      productCategoryId,
       isGoodExecution,
       shelfVacancy,
       surroundingRemarks,

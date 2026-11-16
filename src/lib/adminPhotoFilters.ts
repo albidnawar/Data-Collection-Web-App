@@ -7,6 +7,7 @@ export interface PhotoFilterParams {
   repId?: string;
   brandId?: string;
   shopTypeId?: string;
+  productCategoryId?: string;
   kind?: string;
   status?: string;
   executionQuality?: string;
@@ -26,6 +27,7 @@ export function buildPhotoWhere(params: PhotoFilterParams): Prisma.PhotoRecordWh
   if (params.repId) where.repId = params.repId;
   if (params.brandId) where.brandId = params.brandId;
   if (params.shopTypeId) where.shopTypeId = params.shopTypeId;
+  if (params.productCategoryId) where.productCategoryId = params.productCategoryId;
   if (params.kind && ["posm", "category", "sku", "outlet"].includes(params.kind)) {
     where.kind = params.kind as Prisma.EnumPhotoKindFilter["equals"];
   }
@@ -58,6 +60,7 @@ export interface PhotoFilterOptionSets {
   repIds: Set<string>;
   brandIds: Set<string>;
   shopTypeIds: Set<string>;
+  productCategoryIds: Set<string>;
   kinds: Set<string>;
   statuses: Set<string>;
   goodExecutions: Set<boolean>;
@@ -86,6 +89,11 @@ export async function getAvailablePhotoFilterOptions(
   const reps = await prisma.photoRecord.groupBy({ by: ["repId"], where: whereExcluding("repId"), _count: { _all: true } });
   const brands = await prisma.photoRecord.groupBy({ by: ["brandId"], where: whereExcluding("brandId"), _count: { _all: true } });
   const shopTypes = await prisma.photoRecord.groupBy({ by: ["shopTypeId"], where: whereExcluding("shopTypeId"), _count: { _all: true } });
+  const productCategories = await prisma.photoRecord.groupBy({
+    by: ["productCategoryId"],
+    where: whereExcluding("productCategoryId"),
+    _count: { _all: true },
+  });
   const kinds = await prisma.photoRecord.groupBy({ by: ["kind"], where: whereExcluding("kind"), _count: { _all: true } });
   const statuses = await prisma.photoRecord.groupBy({ by: ["status"], where: whereExcluding("status"), _count: { _all: true } });
   const executions = await prisma.photoRecord.groupBy({
@@ -108,6 +116,7 @@ export async function getAvailablePhotoFilterOptions(
     repIds: new Set(reps.map((r) => r.repId)),
     brandIds: new Set(brands.map((r) => r.brandId).filter((v): v is string => !!v)),
     shopTypeIds: new Set(shopTypes.map((r) => r.shopTypeId).filter((v): v is string => !!v)),
+    productCategoryIds: new Set(productCategories.map((r) => r.productCategoryId).filter((v): v is string => !!v)),
     kinds: new Set(kinds.map((r) => r.kind)),
     statuses: new Set(statuses.map((r) => r.status)),
     goodExecutions: new Set(executions.map((r) => r.isGoodExecution)),

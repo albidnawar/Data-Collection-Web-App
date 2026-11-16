@@ -27,6 +27,8 @@ export interface PendingUpload {
   posmType: TagRef | null;
   skuType: TagRef | null;
   shopType: TagRef | null;
+  // Optional regardless of kind — never required to save a photo.
+  productCategory: TagRef | null;
   // Carried over from the outlet capture step (reps with role "pran") and
   // attached to every photo taken at that outlet, including the outlet's own
   // outside/storefront photo (kind "outlet"). Null for other reps.
@@ -59,6 +61,7 @@ export interface TagCache {
   posmTypes: TagOption[];
   skuTypes: TagOption[];
   shopTypes: TagOption[];
+  productCategories: TagOption[];
   fetchedAt: string;
 }
 

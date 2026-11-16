@@ -22,6 +22,8 @@ export interface EditablePhotoRef extends PhotoRef {
   shopTypeId: string | null;
   shopTypeName: string | null;
   isGoodExecution: boolean;
+  productCategoryId: string | null;
+  productCategoryName: string | null;
   shelfVacancy: boolean | null;
   surroundingRemarks: string | null;
   otherRemarks: string | null;
@@ -41,6 +43,7 @@ export interface PhotoEditOptions {
   categories: Option[];
   posmTypes: Option[];
   skuTypes: Option[];
+  productCategories: Option[];
 }
 
 function isEditableRef(photo: PhotoRef | EditablePhotoRef): photo is EditablePhotoRef {
@@ -232,6 +235,7 @@ function PhotoEditPanel({
   const [draftTypeId, setDraftTypeId] = useState(photo.typeId ?? "");
   const [draftShopTypeId, setDraftShopTypeId] = useState(photo.shopTypeId ?? "");
   const [draftIsGood, setDraftIsGood] = useState(photo.isGoodExecution);
+  const [draftProductCategoryId, setDraftProductCategoryId] = useState(photo.productCategoryId ?? "");
   const [draftShelfVacancy, setDraftShelfVacancy] = useState(
     photo.shelfVacancy === true ? "yes" : photo.shelfVacancy === false ? "no" : "",
   );
@@ -278,6 +282,7 @@ function PhotoEditPanel({
       posmTypeId: draftKind === "posm" ? draftTypeId || null : null,
       skuTypeId: draftKind === "sku" ? draftTypeId || null : null,
       isGoodExecution: draftIsGood,
+      productCategoryId: draftProductCategoryId || null,
       shelfVacancy: draftShelfVacancy === "yes" ? true : draftShelfVacancy === "no" ? false : null,
       surroundingRemarks: draftSurrounding.trim() || null,
       otherRemarks: draftOther.trim() || null,
@@ -637,6 +642,20 @@ function PhotoEditPanel({
             </label>
           </>
         )}
+
+        <label className={labelClass}>
+          Product Category
+          <select
+            value={draftProductCategoryId}
+            onChange={(e) => setDraftProductCategoryId(e.target.value)}
+            className={selectClass}
+          >
+            <option value="">Not set</option>
+            {options.productCategories.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+        </label>
 
         <label className={labelClass}>
           Shelf vacancy

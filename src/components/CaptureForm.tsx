@@ -46,6 +46,8 @@ export function CaptureForm({ requiresOutletCapture }: { requiresOutletCapture: 
   const [posmType, setPosmType] = useState<string | null>(null);
   const [skuType, setSkuType] = useState<string | null>(null);
   const [shopType, setShopType] = useState<string | null>(null);
+  // Optional regardless of kind — never required to save a photo.
+  const [productCategory, setProductCategory] = useState<string | null>(null);
   const [surroundingRemarks, setSurroundingRemarks] = useState("");
   const [otherRemarks, setOtherRemarks] = useState("");
   const [shelfVacancy, setShelfVacancy] = useState<boolean | null>(null);
@@ -158,6 +160,7 @@ export function CaptureForm({ requiresOutletCapture }: { requiresOutletCapture: 
     if (type === "posmType" && posmType === option.name) setPosmType(null);
     if (type === "skuType" && skuType === option.name) setSkuType(null);
     if (type === "shopType" && shopType === option.name) setShopType(null);
+    if (type === "productCategory" && productCategory === option.name) setProductCategory(null);
 
     return { ok: true };
   };
@@ -213,6 +216,7 @@ export function CaptureForm({ requiresOutletCapture }: { requiresOutletCapture: 
         posmType: null,
         skuType: null,
         shopType: null,
+        productCategory: null,
         outletName: trimmedOutletName,
         pranRelation: null,
         gpsLat: gps?.lat ?? null,
@@ -269,6 +273,7 @@ export function CaptureForm({ requiresOutletCapture }: { requiresOutletCapture: 
       posmType: kind === "posm" && posmType ? tagRef(posmType) : null,
       skuType: kind === "sku" && skuType ? tagRef(skuType) : null,
       shopType: tagRef(shopType),
+      productCategory: productCategory ? tagRef(productCategory) : null,
       outletName: requiresOutletCapture ? trimmedOutletName : null,
       pranRelation: requiresOutletCapture ? pranRelation : null,
       gpsLat: gps?.lat ?? null,
@@ -289,6 +294,7 @@ export function CaptureForm({ requiresOutletCapture }: { requiresOutletCapture: 
     if (kind === "posm" && posmType) recordTagUse("posmType", posmType);
     if (kind === "category" && category) recordTagUse("category", category);
     if (kind === "sku" && skuType) recordTagUse("skuType", skuType);
+    if (productCategory) recordTagUse("productCategory", productCategory);
 
     notifyQueueChanged();
     void drainUploadQueue();
@@ -302,6 +308,7 @@ export function CaptureForm({ requiresOutletCapture }: { requiresOutletCapture: 
     setCategory(null);
     setPosmType(null);
     setSkuType(null);
+    setProductCategory(null);
     setKind("category");
     setIsGoodExecution(null);
     setPranRelation(null);
@@ -321,6 +328,7 @@ export function CaptureForm({ requiresOutletCapture }: { requiresOutletCapture: 
   const posmTypeOptions = cache ? sortByMostRecentlyUsed("posmType", cache.posmTypes) : [];
   const skuTypeOptions = cache ? sortByMostRecentlyUsed("skuType", cache.skuTypes) : [];
   const shopTypeOptions = cache ? sortByMostRecentlyUsed("shopType", cache.shopTypes) : [];
+  const productCategoryOptions = cache ? sortByMostRecentlyUsed("productCategory", cache.productCategories) : [];
 
   return (
     <div className="flex flex-1 flex-col gap-6 px-4 py-6">
@@ -550,6 +558,15 @@ export function CaptureForm({ requiresOutletCapture }: { requiresOutletCapture: 
           onDelete={(option) => handleDeleteTag("skuType", option)}
         />
       )}
+
+      <ChipGroup
+        label="Product Category (optional)"
+        options={productCategoryOptions}
+        selected={productCategory}
+        onSelect={setProductCategory}
+        onAddNew={(name) => handleAddNewTag("productCategory", name)}
+        onDelete={(option) => handleDeleteTag("productCategory", option)}
+      />
 
       <div className="flex flex-col gap-2">
         <label htmlFor="surroundingRemarks" className="text-sm font-medium text-gray-600 dark:text-gray-400">

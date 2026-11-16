@@ -16,6 +16,8 @@ function whereForType(type: TagType, id: string): Prisma.PhotoRecordWhereInput {
       return { skuTypeId: id };
     case "shopType":
       return { shopTypeId: id };
+    case "productCategory":
+      return { productCategoryId: id };
   }
 }
 
@@ -31,6 +33,8 @@ function updateDataForType(type: TagType, id: string): Prisma.PhotoRecordUpdateI
       return { skuType: { connect: { id } } };
     case "shopType":
       return { shopType: { connect: { id } } };
+    case "productCategory":
+      return { productCategory: { connect: { id } } };
   }
 }
 
@@ -46,6 +50,8 @@ async function getTagName(type: TagType, id: string): Promise<string | null> {
       return (await prisma.skuType.findUnique({ where: { id } }))?.name ?? null;
     case "shopType":
       return (await prisma.shopType.findUnique({ where: { id } }))?.name ?? null;
+    case "productCategory":
+      return (await prisma.productCategory.findUnique({ where: { id } }))?.name ?? null;
   }
 }
 
@@ -61,6 +67,8 @@ async function deleteTagRow(type: TagType, id: string) {
       return prisma.skuType.delete({ where: { id } });
     case "shopType":
       return prisma.shopType.delete({ where: { id } });
+    case "productCategory":
+      return prisma.productCategory.delete({ where: { id } });
   }
 }
 
@@ -92,6 +100,16 @@ export async function mergeAndDeleteTag(
     }
 
     for (const record of affected) {
+      // Unlike the other tag types, a product category never feeds into the
+      // generated filename — skip the rename/refile dance entirely for it.
+      if (type === "productCategory") {
+        await prisma.photoRecord.update({
+          where: { id: record.id },
+          data: updateDataForType(type, mergeIntoId),
+        });
+        continue;
+      }
+
       const typeName =
         type === "posmType" || type === "category" || type === "skuType"
           ? newName

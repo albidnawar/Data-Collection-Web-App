@@ -41,6 +41,7 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
     repId: get("repId"),
     brandId: get("brandId"),
     shopTypeId: get("shopTypeId"),
+    productCategoryId: get("productCategoryId"),
     kind: get("kind"),
     status: get("status"),
     executionQuality: get("executionQuality"),
@@ -50,20 +51,21 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
 
   const where = buildPhotoWhere(filters);
 
-  const [reps, brands, shopTypes, categories, posmTypes, skuTypes, total, records, unreadable] = await Promise.all([
+  const [reps, brands, shopTypes, categories, posmTypes, skuTypes, productCategories, total, records, unreadable] = await Promise.all([
     prisma.rep.findMany({ orderBy: { name: "asc" } }),
     prisma.brand.findMany({ orderBy: { name: "asc" } }),
     prisma.shopType.findMany({ orderBy: { name: "asc" } }),
     prisma.category.findMany({ orderBy: { name: "asc" } }),
     prisma.posmType.findMany({ orderBy: { name: "asc" } }),
     prisma.skuType.findMany({ orderBy: { name: "asc" } }),
+    prisma.productCategory.findMany({ orderBy: { name: "asc" } }),
     prisma.photoRecord.count({ where }),
     prisma.photoRecord.findMany({
       where,
       orderBy: { capturedAt: "desc" },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
-      include: { rep: true, brand: true, category: true, posmType: true, skuType: true, shopType: true },
+      include: { rep: true, brand: true, category: true, posmType: true, skuType: true, shopType: true, productCategory: true },
     }),
     prisma.photoRecord.findMany({
       where: { byteFormatIssue: { not: null } },
@@ -85,6 +87,9 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
   const visibleReps = reps.filter((r) => available.repIds.has(r.id) || r.id === filters.repId);
   const visibleBrands = brands.filter((b) => available.brandIds.has(b.id) || b.id === filters.brandId);
   const visibleShopTypes = shopTypes.filter((s) => available.shopTypeIds.has(s.id) || s.id === filters.shopTypeId);
+  const visibleProductCategories = productCategories.filter(
+    (p) => available.productCategoryIds.has(p.id) || p.id === filters.productCategoryId,
+  );
   const visibleKinds = KIND_OPTIONS.filter((o) => available.kinds.has(o.value) || o.value === filters.kind);
   const visibleStatuses = STATUS_OPTIONS.filter((o) => available.statuses.has(o.value) || o.value === filters.status);
   const visibleExecutions = EXECUTION_OPTIONS.filter(
@@ -174,6 +179,15 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
           </select>
         </label>
         <label className="flex flex-col gap-1 text-xs text-gray-500">
+          Product Category
+          <select name="productCategoryId" defaultValue={filters.productCategoryId ?? ""} className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800">
+            <option value="">All</option>
+            {visibleProductCategories.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-xs text-gray-500">
           Kind
           <select name="kind" defaultValue={filters.kind ?? ""} className="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800">
             <option value="">All</option>
@@ -231,13 +245,15 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
             shopTypeId: r.shopTypeId,
             shopTypeName: r.shopType?.name ?? null,
             isGoodExecution: r.isGoodExecution,
+            productCategoryId: r.productCategoryId,
+            productCategoryName: r.productCategory?.name ?? null,
             shelfVacancy: r.shelfVacancy,
             surroundingRemarks: r.surroundingRemarks,
             otherRemarks: r.otherRemarks,
             repIsPranRole: r.rep.role === "pran",
           };
         })}
-        editOptions={{ brands, shopTypes, categories, posmTypes, skuTypes }}
+        editOptions={{ brands, shopTypes, categories, posmTypes, skuTypes, productCategories }}
       >
       <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
         <table className="w-full text-left text-sm">
@@ -252,6 +268,7 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
               <th className="px-3 py-2">Type</th>
               <th className="px-3 py-2">Shop type</th>
               <th className="px-3 py-2">Execution</th>
+              <th className="px-3 py-2">Product Category</th>
               <th className="px-3 py-2">Edit</th>
               <th className="px-3 py-2">Shelf Vacancy</th>
               <th className="px-3 py-2">Surrounding Remarks</th>
@@ -289,11 +306,14 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
                   shopTypeId={r.shopTypeId}
                   shopTypeName={r.shopType?.name ?? null}
                   isGoodExecution={r.isGoodExecution}
+                  productCategoryId={r.productCategoryId}
+                  productCategoryName={r.productCategory?.name ?? null}
                   brands={brands}
                   shopTypes={shopTypes}
                   categories={categories}
                   posmTypes={posmTypes}
                   skuTypes={skuTypes}
+                  productCategories={productCategories}
                 />
                 <td className="px-3 py-2">
                   {r.shelfVacancy === true ? "Yes" : r.shelfVacancy === false ? "No" : "-"}
@@ -335,7 +355,7 @@ export default async function AdminPhotosPage(props: PageProps<"/admin/photos">)
             })}
             {records.length === 0 && (
               <tr>
-                <td colSpan={17} className="px-3 py-6 text-center text-gray-500">
+                <td colSpan={18} className="px-3 py-6 text-center text-gray-500">
                   No photos match these filters.
                 </td>
               </tr>

@@ -14,6 +14,34 @@ const DEFAULT_SHOP_TYPES = [
   "Other",
 ];
 
+const DEFAULT_PRODUCT_CATEGORIES = [
+  "Beverage",
+  "Commodities",
+  "CSD",
+  "Dairy",
+  "Drinking Water",
+  "Drinks",
+  "Dry Cake",
+  "ED & Juice Can",
+  "Energy Drink",
+  "Energy Drinks",
+  "Hotfill",
+  "Kitchen Additives",
+  "KOFI HOUSE",
+  "Lacchi",
+  "Mango Bar",
+  "Nata",
+  "Others Item",
+  "Packaged Food",
+  "Powder",
+  "Powder Drinks",
+  "Tea",
+  "Tetra Pack",
+  "Trading",
+  "WV",
+  "WV & RW",
+];
+
 async function main() {
   for (const name of DEFAULT_SHOP_TYPES) {
     await prisma.shopType.upsert({
@@ -23,6 +51,15 @@ async function main() {
     });
   }
   console.log(`Seeded ${DEFAULT_SHOP_TYPES.length} shop types.`);
+
+  for (const name of DEFAULT_PRODUCT_CATEGORIES) {
+    await prisma.productCategory.upsert({
+      where: { name },
+      update: {},
+      create: { name },
+    });
+  }
+  console.log(`Seeded ${DEFAULT_PRODUCT_CATEGORIES.length} product categories.`);
 
   const adminUsername = process.env.SEED_ADMIN_USERNAME ?? "admin";
   const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? "changeme123";

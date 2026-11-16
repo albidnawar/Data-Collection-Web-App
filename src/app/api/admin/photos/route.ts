@@ -23,7 +23,7 @@ export async function GET(request: Request) {
   const records = await prisma.photoRecord.findMany({
     where,
     orderBy: { capturedAt: "desc" },
-    include: { rep: true, brand: true, category: true, posmType: true, skuType: true, shopType: true },
+    include: { rep: true, brand: true, category: true, posmType: true, skuType: true, shopType: true, productCategory: true },
   });
 
   if (params.format !== "csv") {
@@ -37,6 +37,7 @@ export async function GET(request: Request) {
     "kind",
     "type",
     "shopType",
+    "productCategory",
     "executionQuality",
     "shelfVacancy",
     "surroundingRemarks",
@@ -63,6 +64,7 @@ export async function GET(request: Request) {
             : "SKU",
       (r.kind === "posm" ? r.posmType?.name : r.kind === "category" ? r.category?.name : r.skuType?.name) ?? "",
       r.shopType?.name ?? "",
+      r.productCategory?.name ?? "",
       r.isGoodExecution ? "Good" : "Bad",
       r.shelfVacancy === true ? "Yes" : r.shelfVacancy === false ? "No" : "",
       r.surroundingRemarks ?? "",
