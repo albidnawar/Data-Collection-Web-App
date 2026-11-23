@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "public/sw.js",
     "public/sw.js.map",
+    // Its own separate app/project, with its own eslint config.
+    "pran-map/**",
   ]),
 ]);
 
