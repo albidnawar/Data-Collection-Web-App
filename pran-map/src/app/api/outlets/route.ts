@@ -14,15 +14,32 @@ export async function GET(request: Request) {
   const target = new URL("/api/pran-map/outlets", mainAppUrl);
   target.search = incoming.search;
 
-  const upstream = await fetch(target, {
-    headers: { "x-pran-map-key": apiKey },
-    cache: "no-store",
-  });
+  // Bounds this function's own runtime: without it, a slow/cold main app
+  // could leave this request hanging for minutes (this project's default
+  // function timeout) instead of failing fast with a retriable error.
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 25000);
 
-  if (!upstream.ok) {
-    return NextResponse.json({ error: "Failed to load outlets." }, { status: 502 });
+  try {
+    const upstream = await fetch(target, {
+      headers: { "x-pran-map-key": apiKey },
+      cache: "no-store",
+      signal: controller.signal,
+    });
+
+    if (!upstream.ok) {
+      return NextResponse.json({ error: "Failed to load outlets." }, { status: 502 });
+    }
+
+    const data = await upstream.json();
+    return NextResponse.json(data);
+  } catch (err) {
+    const timedOut = err instanceof Error && err.name === "AbortError";
+    return NextResponse.json(
+      { error: timedOut ? "The main app took too long to respond." : "Failed to load outlets." },
+      { status: 504 },
+    );
+  } finally {
+    clearTimeout(timeout);
   }
-
-  const data = await upstream.json();
-  return NextResponse.json(data);
 }

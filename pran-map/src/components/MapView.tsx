@@ -64,27 +64,86 @@ export function MapView() {
     return () => window.removeEventListener("maplibregl-ready", handleReady);
   }, []);
 
+  const [retryToken, setRetryToken] = useState(0);
+
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+
+    // A plain fetch() with no timeout can hang indefinitely — a slow/cold
+    // upstream, a flaky mobile connection, or a backgrounded tab's network
+    // task getting suspended and never settling all leave the UI stuck on
+    // "Loading outlets…" forever with no error. This bounds every attempt
+    // and retries a couple of times before giving up and showing an error
+    // (with a manual retry option) instead of hanging silently.
+    async function fetchOnce(): Promise<PranMapOutlet[]> {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
       try {
-        const res = await fetch("/api/outlets");
+        const res = await fetch("/api/outlets", { signal: controller.signal });
         if (!res.ok) {
           const data = await res.json().catch(() => null);
           throw new Error(data?.error ?? `Failed to load outlets (${res.status}).`);
         }
         const data = await res.json();
-        if (!cancelled) setOutlets(data.outlets ?? []);
-      } catch (err) {
-        if (!cancelled) setLoadError(err instanceof Error ? err.message : "Failed to load outlets.");
+        return data.outlets ?? [];
       } finally {
-        if (!cancelled) setLoading(false);
+        clearTimeout(timeout);
       }
+    }
+
+    (async () => {
+      setLoading(true);
+      setLoadError(null);
+      const attempts = 3;
+      for (let attempt = 1; attempt <= attempts; attempt++) {
+        try {
+          const outletsData = await fetchOnce();
+          if (!cancelled) {
+            setOutlets(outletsData);
+            setLoadError(null);
+          }
+          break;
+        } catch (err) {
+          if (attempt === attempts) {
+            if (!cancelled) {
+              setLoadError(
+                err instanceof Error
+                  ? err.name === "AbortError"
+                    ? "Timed out loading outlets — the server may be slow to respond."
+                    : err.message
+                  : "Failed to load outlets.",
+              );
+            }
+          } else {
+            await new Promise((resolve) => setTimeout(resolve, 1500));
+          }
+        }
+      }
+      if (!cancelled) setLoading(false);
     })();
+
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [retryToken]);
+
+  // If the tab was backgrounded mid-load (phone screen lock, app switch),
+  // some browsers leave the original fetch promise hanging forever instead
+  // of rejecting it. Retrying once the page is visible again, if nothing
+  // loaded yet, recovers from that without needing a full page reload.
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible" && loading) {
+        setRetryToken((t) => t + 1);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("pageshow", handleVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("pageshow", handleVisibility);
+    };
+  }, [loading]);
 
   useEffect(() => {
     if (!libReady || !containerRef.current || mapRef.current) return;
@@ -172,7 +231,24 @@ export function MapView() {
         <div style={{ color: "var(--muted)", marginTop: 4 }}>
           {loading ? "Loading outlets…" : `${outlets.length} outlet${outlets.length === 1 ? "" : "s"}`}
         </div>
-        {loadError && <div style={{ color: "var(--bad)", marginTop: 4 }}>{loadError}</div>}
+        {loadError && (
+          <div style={{ color: "var(--bad)", marginTop: 4 }}>
+            {loadError}{" "}
+            <button
+              onClick={() => setRetryToken((t) => t + 1)}
+              style={{
+                background: "none",
+                border: "none",
+                padding: 0,
+                color: "var(--accent)",
+                textDecoration: "underline",
+                fontSize: 11,
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        )}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8, fontSize: 11, color: "var(--muted)" }}>
           <Legend color="#22c55e" label="Pran shelf: Good" />
           <Legend color="#ef4444" label="Pran shelf: Bad" />
